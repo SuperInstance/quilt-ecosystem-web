@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>plugins · Self-evolving registry · Quilt Apps</title>
+<link rel="stylesheet" href="/assets/css/quilt.css" />
+</head>
+<body>
+
+<header class="quilt">
+  <div class="row">
+    <a class="brand" href="/">Quilt<span class="dot">·</span></a>
+    <nav>
+      <a href="/academy/">Academy</a>
+      <a href="/repl/">REPL</a>
+      <a href="/playground/">Playground</a>
+      <a href="/apps/" class="active">Apps</a>
+      <a href="/boundaries/">Boundaries</a>
+      <a href="/vms/">VMs</a>
+      <a href="/canon/">Canon</a>
+      <a href="/self-host/">Self-host</a>
+    </nav>
+    <div class="right">App 5 of 5</div>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <h1>A <span style="color:var(--amber)">self-evolving plugin registry</span></h1>
+    <p class="lede">
+      Add a plugin at runtime. The substrate evolves. The new
+      opcodes are bound by the same 5 laws. The substrate is
+      a Turing-complete substrate language — you can extend
+      it without forking it.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="num">01</span><span>Register a plugin</span><span class="rule"></span></h2>
+    <p class="lead">Pick a name, pick a behavior. The substrate installs it.</p>
+    <div class="app-form">
+      <input type="text" id="plugin-name" placeholder="plugin name" style="width: 200px;" value="greeter" />
+      <select id="plugin-behavior" style="background: var(--bg-3); color: var(--ink); border: 1px solid var(--line); padding: 0.4rem 0.7rem; border-radius: 6px; font-family: var(--mono);">
+        <option value="echo">echo: repeat a value</option>
+        <option value="increment">increment: add 1 to a number</option>
+        <option value="uppercase">uppercase: transform a string</option>
+        <option value="reverse">reverse: reverse a string</option>
+        <option value="square">square: x*x</option>
+      </select>
+      <button id="register">⚙ Register</button>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span><span>Test the plugin</span><span class="rule"></span></h2>
+    <p class="lead">After registering, the plugin is available as a new opcode.</p>
+    <div class="app-form">
+      <input type="text" id="test-input" placeholder="input" style="width: 200px;" value="hello" />
+      <button id="test">Run</button>
+    </div>
+    <div class="app-output" id="result">Register a plugin first, then run it.</div>
+  </section>
+
+  <section>
+    <h2><span class="num">03</span><span>Installed plugins</span><span class="rule"></span></h2>
+    <table>
+      <thead><tr><th>Plugin</th><th>Behavior</th><th>Installs</th><th>Status</th></tr></thead>
+      <tbody id="plugins-table"><tr><td colspan="4" style="text-align: center; color: var(--ink-3);">No plugins installed yet.</td></tr></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2><span class="num">04</span><span>The principle</span><span class="rule"></span></h2>
+    <p class="lead">
+      The substrate is a closed inversive monoid under the 5
+      opcodes. A plugin is a derived monoid homomorphism —
+      it maps the 5-opcode algebra into a new algebra. As
+      long as the homomorphism preserves the 5 laws, the
+      plugin is safe. The substrate is self-evolving because
+      the algebra is closed under the right homomorphisms.
+    </p>
+    <p class="lead">
+      This is the same theorem as
+      <a href="https://github.com/SuperInstance/AI-Writings/blob/master/seed-canon/papers/paper-169.md">Paper 169</a>:
+      <em>a monotone function f: M → M* preserves all 5 laws.</em>
+    </p>
+  </section>
+</main>
+
+<div class="saved-banner" id="banner"></div>
+
+<script src="/assets/js/substrate.js"></script>
+<script>
+(function() {
+  const sub = new Substrate();
+  const table = document.getElementById('plugins-table');
+  const result = document.getElementById('result');
+
+  // The plugin registry is a cell
+  sub.bind('plugins', {});
+
+  // A plugin is a function: (value) => newValue
+  const BEHAVIORS = {
+    echo: (v) => v,
+    increment: (v) => (typeof v === 'number' ? v + 1 : 0),
+    uppercase: (v) => String(v).toUpperCase(),
+    reverse: (v) => String(v).split('').reverse().join(''),
+    square: (v) => (typeof v === 'number' ? v * v : 0),
+  };
+
+  function register(name, behavior) {
+    sub.bind('plugins', { ...sub.view('plugins'), [name]: BEHAVIORS[behavior] });
+    sub.bind(`plugin:${name}`, behavior);
+    sub.tick(0.1);
+    render();
+  }
+
+  function runPlugin(name, input) {
+    const plugins = sub.view('plugins') || {};
+    const fn = plugins[name];
+    if (!fn) return null;
+    let parsed = input;
+    try { parsed = JSON.parse(input); } catch (e) {}
+    return fn(parsed);
+  }
+
+  function render() {
+    const plugins = sub.view('plugins') || {};
+    const names = Object.keys(plugins);
+    if (names.length === 0) {
+      table.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--ink-3);">No plugins installed yet.</td></tr>';
+    } else {
+      table.innerHTML = names.map(n => {
+        const behavior = sub.view(`plugin:${n}`);
+        return `<tr><td><code>${n}</code></td><td>${behavior}</td><td>v${sub.cell(`plugin:${n}`).version}</td><td><span class="pill green">active</span></td></tr>`;
+      }).join('');
+    }
+  }
+
+  document.getElementById('register').onclick = () => {
+    const name = document.getElementById('plugin-name').value.trim();
+    const behavior = document.getElementById('plugin-behavior').value;
+    if (!name) return;
+    register(name, behavior);
+    result.textContent = `Installed "${name}" (${behavior}). Now run it.`;
+  };
+  document.getElementById('test').onclick = () => {
+    const name = document.getElementById('plugin-name').value.trim();
+    const input = document.getElementById('test-input').value;
+    const out = runPlugin(name, input);
+    if (out === null) {
+      result.textContent = `Plugin "${name}" not installed.`;
+    } else {
+      result.textContent = `${name}("${input}") = ${JSON.stringify(out)}`;
+    }
+  };
+  render();
+})();
+</script>
+
+</body>
+</html>
