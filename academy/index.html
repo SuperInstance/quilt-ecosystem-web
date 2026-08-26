@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Quilt Academy · Learn the 5 opcodes</title>
+<link rel="stylesheet" href="/assets/css/quilt.css" />
+</head>
+<body>
+
+<header class="quilt">
+  <div class="row">
+    <a class="brand" href="/">Quilt<span class="dot">·</span></a>
+    <nav>
+      <a href="/academy/" class="active">Academy</a>
+      <a href="/repl/">REPL</a>
+      <a href="/playground/">Playground</a>
+      <a href="/apps/">Apps</a>
+      <a href="/boundaries/">Boundaries</a>
+      <a href="/vms/">VMs</a>
+      <a href="/canon/">Canon</a>
+      <a href="/self-host/">Self-host</a>
+    </nav>
+    <div class="right">7 lessons · ~30 min total</div>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <h1>Quilt Academy</h1>
+    <p class="lede">
+      Seven short lessons. Each one introduces one or two of the
+      5 opcodes with a running example. You can edit every
+      example, see the journal update, save your work, and take
+      it with you.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="num">01</span><span>The path</span><span class="rule"></span></h2>
+    <div class="cards">
+      <a class="card" href="/academy/1/">
+        <h3>1. BIND</h3>
+        <p>What it means to give a name to a value. Idempotence.</p>
+        <span class="tag">5 min</span>
+      </a>
+      <a class="card" href="/academy/2/">
+        <h3>2. LINK</h3>
+        <p>What it means to draw a typed relationship. Transitivity.</p>
+        <span class="tag">5 min</span>
+      </a>
+      <a class="card" href="/academy/3/">
+        <h3>3. EFFECT</h3>
+        <p>What it means to do something with side effects. Associativity.</p>
+        <span class="tag">5 min</span>
+      </a>
+      <a class="card" href="/academy/4/">
+        <h3>4. VIEW</h3>
+        <p>What it means to observe without mutating. Purity.</p>
+        <span class="tag">5 min</span>
+      </a>
+      <a class="card" href="/academy/5/">
+        <h3>5. TICK</h3>
+        <p>What it means to advance time. Monotonicity.</p>
+        <span class="tag">5 min</span>
+      </a>
+      <a class="card" href="/academy/6/">
+        <h3>6. The 5 laws</h3>
+        <p>Why this is algebra, not just a protocol. The prover.</p>
+        <span class="tag">5 min</span>
+      </a>
+      <a class="card" href="/academy/7/">
+        <h3>7. Build your first app</h3>
+        <p>Combine all 5 to make a working counter. Take it offline.</p>
+        <span class="tag">10 min</span>
+      </a>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span><span>What you'll learn</span><span class="rule"></span></h2>
+    <p class="lead">
+      The Quilt is built on a single idea: every reactive element
+      is a <em>cell</em>, and a cell receives one of 5 messages
+      (BIND, LINK, EFFECT, VIEW, TICK). The 5 messages compose
+      into every higher-level pattern: a database, a bus, a
+      versioned config, a search engine, a pub/sub, a
+      collaborative document, a calendar.
+    </p>
+    <p class="lead">
+      By the end of the Academy you'll have built a working
+      counter, a tiny pub/sub, and a self-evolving plugin
+      registry — all in the browser, all saveable, all
+      exportable to a local instance.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="num">03</span><span>What you'll take with you</span><span class="rule"></span></h2>
+    <p class="lead">
+      Every lesson has a <strong>Save</strong> button. Your
+      progress is in localStorage by default. Click
+      <strong>Save to cloud</strong> to put it in Cloudflare KV
+      and get a share URL. Click <strong>Export</strong> to
+      download a saddle-bridge JSONL file you can run on a
+      local instance.
+    </p>
+    <p class="lead">
+      The state is yours.
+    </p>
+  </section>
+</main>
+
+<footer class="quilt">
+  <div class="row">
+    <div class="col">
+      <h4>The substrate</h4>
+      <ul>
+        <li><a href="https://github.com/SuperInstance/quilt-substrate-meta">quilt-substrate-meta</a> · C99 reference</li>
+        <li><a href="https://github.com/SuperInstance/quilt-vm-typescript">quilt-vm-typescript</a> · browser</li>
+      </ul>
+    </div>
+    <div class="col">
+      <h4>The canon</h4>
+      <ul>
+        <li><a href="https://github.com/SuperInstance/AI-Writings">AI-Writings</a></li>
+        <li><a href="https://github.com/SuperInstance/AI-Writings/blob/master/seed-canon/COLLECTION.md">COLLECTION.md</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

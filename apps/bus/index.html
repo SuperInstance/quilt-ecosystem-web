@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>bus · A pub/sub bus · Quilt Apps</title>
+<link rel="stylesheet" href="/assets/css/quilt.css" />
+</head>
+<body>
+
+<header class="quilt">
+  <div class="row">
+    <a class="brand" href="/">Quilt<span class="dot">·</span></a>
+    <nav>
+      <a href="/academy/">Academy</a>
+      <a href="/repl/">REPL</a>
+      <a href="/playground/">Playground</a>
+      <a href="/apps/" class="active">Apps</a>
+      <a href="/boundaries/">Boundaries</a>
+      <a href="/vms/">VMs</a>
+      <a href="/canon/">Canon</a>
+      <a href="/self-host/">Self-host</a>
+    </nav>
+    <div class="right">App 2 of 5</div>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <h1>A <span style="color:var(--blue)">pub/sub bus</span> in 50 lines</h1>
+    <p class="lede">
+      LINK subscribes a cell to a topic. BIND publishes a
+      message. Listeners fire on every subscriber. Open this
+      page in two tabs — they share the bus (in the cloud) or
+      run separately (in localStorage).
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="num">01</span><span>Subscribe</span><span class="rule"></span></h2>
+    <p class="lead">Pick a topic and a callback cell. New messages on the topic will land in the cell.</p>
+    <div class="app-form" style="margin-bottom: 1rem;">
+      <input type="text" id="topic" placeholder="topic (e.g. news.weather)" style="width: 250px;" value="news.weather" />
+      <input type="text" id="subscriber" placeholder="subscriber cell" style="width: 250px;" value="my-feed" />
+      <button id="subscribe">SUBSCRIBE</button>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span><span>Publish</span><span class="rule"></span></h2>
+    <div class="app-form" style="margin-bottom: 1rem;">
+      <input type="text" id="pub-topic" placeholder="topic" style="width: 250px;" value="news.weather" />
+      <input type="text" id="pub-message" placeholder="message (JSON or text)" style="width: 350px;" />
+      <button id="publish">PUBLISH</button>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">03</span><span>Live feed</span><span class="rule"></span></h2>
+    <div class="app-output" id="feed">No messages yet. Subscribe and publish to see them flow.</div>
+  </section>
+
+  <section>
+    <h2><span class="num">04</span><span>Subscriptions</span><span class="rule"></span></h2>
+    <table>
+      <thead><tr><th>Topic</th><th>Subscriber cell</th><th>Messages received</th></tr></thead>
+      <tbody id="subs-table"><tr><td colspan="3" style="text-align: center; color: var(--ink-3);">No subscriptions yet.</td></tr></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2><span class="num">05</span><span>The source</span><span class="rule"></span></h2>
+<pre><code><span class="kw">const</span> sub = <span class="kw">new</span> <span class="lang">Substrate</span>();
+
+<span class="kw">function</span> subscribe(topic, cell) {
+  <span class="kw">if</span> (!sub.has(cell)) sub.bind(cell, []);
+  sub.link(cell, topic, <span class="str">'subscribes'</span>);
+}
+
+<span class="kw">function</span> publish(topic, message) {
+  <span class="kw">for</span> (<span class="kw">const</span> [cellName, cell] <span class="kw">of</span> sub.cells) {
+    <span class="kw">for</span> (<span class="kw">const</span> linkKey <span class="kw">of</span> sub.links.keys()) {
+      <span class="kw">if</span> (linkKey.startsWith(<span class="str">`${cellName}|${topic}|`</span>)) {
+        <span class="kw">const</span> next = [...(cell.value || []), { topic, message, t: sub.t }];
+        sub.bind(cellName, next);
+      }
+    }
+  }
+  sub.tick();
+}</code></pre>
+  </section>
+
+  <section>
+    <h2><span class="num">06</span><span>Take it with you</span><span class="rule"></span></h2>
+    <p class="lead">
+      Save the bus state. Open this page in two tabs. Subscribe
+      in tab A. Publish in tab B. If both tabs are loaded
+      from the same cloud save, the bus becomes a real shared
+      substrate.
+    </p>
+  </section>
+</main>
+
+<div class="saved-banner" id="banner"></div>
+
+<script src="/assets/js/substrate.js"></script>
+<script src="/assets/js/persist.js"></script>
+<script>
+(function() {
+  const sub = new Substrate();
+  const feed = document.getElementById('feed');
+  const table = document.getElementById('subs-table');
+  const status = document.getElementById('status');
+
+  const saved = localStorage.getItem('bus-app');
+  if (saved) sub.fromJSONL(saved);
+
+  function subscribe(topic, cell) {
+    if (!sub.has(cell)) sub.bind(cell, []);
+    sub.link(cell, topic, 'subscribes');
+    feed.textContent = `Subscribed ${cell} to ${topic}`;
+    render();
+  }
+
+  function publish(topic, message) {
+    let parsed = message;
+    try { parsed = JSON.parse(message); } catch (e) {}
+    let count = 0;
+    for (const [cellName, cell] of sub.cells) {
+      for (const linkKey of sub.links.keys()) {
+        if (linkKey.startsWith(`${cellName}|${topic}|`)) {
+          const next = [...(cell.value || []), { topic, message: parsed, t: sub.t, ts: Date.now() }];
+          sub.bind(cellName, next);
+          count++;
+        }
+      }
+    }
+    sub.tick();
+    feed.textContent = `Published "${JSON.stringify(parsed)}" to ${topic} (${count} subscribers)`;
+    render();
+  }
+
+  function render() {
+    // Subs table
+    const subs = new Map();
+    for (const [key, _] of sub.links) {
+      const [cellName, topic, rel] = key.split('|');
+      if (rel !== 'subscribes') continue;
+      if (!subs.has(topic)) subs.set(topic, []);
+      subs.get(topic).push(cellName);
+    }
+    if (subs.size === 0) {
+      table.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--ink-3);">No subscriptions yet.</td></tr>';
+    } else {
+      table.innerHTML = '';
+      for (const [topic, cells] of subs) {
+        for (const cell of cells) {
+          const c = sub.cell(cell);
+          const count = (c && c.value) ? c.value.length : 0;
+          table.innerHTML += `<tr><td><code>${topic}</code></td><td><code>${cell}</code></td><td>${count}</td></tr>`;
+        }
+      }
+    }
+    localStorage.setItem('bus-app', sub.toJSONL());
+  }
+
+  document.getElementById('subscribe').onclick = () => {
+    subscribe(document.getElementById('topic').value.trim(),
+              document.getElementById('subscriber').value.trim());
+  };
+  document.getElementById('publish').onclick = () => {
+    publish(document.getElementById('pub-topic').value.trim(),
+            document.getElementById('pub-message').value);
+  };
+
+  function banner(m) { const b = document.getElementById('banner'); b.textContent = m; b.classList.add('show'); setTimeout(() => b.classList.remove('show'), 3000); }
+  // Save buttons
+  const sl = document.createElement('button'); sl.className = 'secondary'; sl.textContent = '💾 Save';
+  const sc = document.createElement('button'); sc.className = 'secondary'; sc.textContent = '☁ Cloud';
+  const ex = document.createElement('button'); ex.className = 'secondary'; ex.textContent = '↓ Export';
+  sl.onclick = () => { QuiltPersist.saveLocal(sub); banner('✓ Saved'); };
+  sc.onclick = async () => { try { const e = await QuiltPersist.saveCloud(sub, 'bus-app'); banner('☁ ' + e.id); } catch { banner('✗ Cloud failed'); } };
+  ex.onclick = async () => {
+    const text = await QuiltPersist.exportSaddleBridge(sub);
+    const blob = new Blob([text], { type: 'application/jsonl' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `bus-${Date.now()}.jsonl`; a.click();
+    banner('↓ Exported');
+  };
+  const bar = document.createElement('div'); bar.className = 'app-form'; bar.style.marginTop = '1rem';
+  bar.append(sl, sc, ex);
+  document.querySelector('main').appendChild(bar);
+
+  render();
+})();
+</script>
+</body>
+</html>

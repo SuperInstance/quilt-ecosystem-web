@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Lesson 5 · TICK · Quilt Academy</title>
+<link rel="stylesheet" href="/assets/css/quilt.css" />
+</head>
+<body>
+
+<header class="quilt">
+  <div class="row">
+    <a class="brand" href="/">Quilt<span class="dot">·</span></a>
+    <nav>
+      <a href="/academy/" class="active">Academy</a>
+      <a href="/repl/">REPL</a>
+      <a href="/playground/">Playground</a>
+      <a href="/apps/">Apps</a>
+      <a href="/boundaries/">Boundaries</a>
+      <a href="/vms/">VMs</a>
+      <a href="/canon/">Canon</a>
+      <a href="/self-host/">Self-host</a>
+    </nav>
+    <div class="right">Lesson 5 of 7</div>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <h1><span style="color:var(--red)">TICK</span> — advance time</h1>
+    <p class="lede">TICK is the unit of now. Each TICK advances the clock by dt (default 0.1). The journal records the tick. Listeners can fire on tick. The substrate becomes a small world with its own time.</p>
+  </section>
+
+  <section>
+    <h2><span class="num">01</span><span>The shape</span><span class="rule"></span></h2>
+    <p class="lead">TICK is the unit of now. Each TICK advances the clock by dt (default 0.1). The journal records the tick. Listeners can fire on tick. The substrate becomes a small world with its own time.</p>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span><span>Try it</span><span class="rule"></span></h2>
+    <div class="repl-grid">
+      <div class="editor">
+        <div class="toolbar">
+          <span class="file">lesson-5.js</span>
+          <button class="secondary" id="run">▶ Run</button>
+          <button class="ghost" id="reset">↻ Reset</button>
+        </div>
+        <textarea id="code" spellcheck="false">// Lesson 5: TICK
+// TICK advances time. Each call records a tick event.
+
+sub.bind('time', 0);
+sub.tick(0.1);  // dt=0.1
+sub.tick(0.1);  // dt=0.1
+sub.tick(0.1);  // dt=0.1
+sub.tick(0.2);  // dt=0.2 (larger step)
+
+// Now we can read the time
+sub.bind('elapsed', sub.t * 0.1);
+
+// Use TICK to drive a heartbeat
+sub.bind('heartbeat', 0);
+sub.effect('heartbeat', (n) => (n || 0) + 1);
+sub.tick();
+sub.effect('heartbeat', (n) => (n || 0) + 1);
+sub.tick();
+sub.effect('heartbeat', (n) => (n || 0) + 1);</textarea>
+      </div>
+      <div class="journal">
+        <div class="toolbar">
+          <span class="title">Journal · cells: <span id="cell-count">0</span></span>
+        </div>
+        <div class="events" id="events"></div>
+      </div>
+    </div>
+    <div class="app-form" style="margin-top: 1rem;">
+      <button id="save-local">💾 Save local</button>
+      <button id="save-cloud" class="secondary">☁ Save to cloud</button>
+      <button id="export" class="secondary">↓ Export JSONL</button>
+      <span id="status" style="color: var(--ink-3); font-size: 0.85rem; font-family: var(--mono); margin-left: auto;"></span>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">03</span><span>The law: monotonicity</span><span class="rule"></span></h2>
+    <p class="lead">Time only moves forward. The substrate's clock is monotonic — t never decreases. This is what makes TICK composable. Two substrates, ticking in parallel, can be merged by interleaving their ticks in time order. The result is a valid substrate.</p>
+  </section>
+
+  <section>
+    <h2><span class="num">04</span><span>What you can build</span><span class="rule"></span></h2>
+    <p class="lead">Animations. Simulations. Schedulers. Anything that needs time. The substrate's clock is your clock. TICK is the message that says 'now' — and the journal records every now you've ever had.</p>
+  </section>
+
+  <section>
+    <h2><span class="num">05</span><span>Next</span><span class="rule"></span></h2>
+    <p class="lead">We have the 5 opcodes. Now let's see why they form an algebra. <a href="/academy/6/">Lesson 6: The 5 laws →</a></p>
+  </section>
+</main>
+
+<div class="saved-banner" id="banner"></div>
+
+<script src="/assets/js/substrate.js"></script>
+<script src="/assets/js/persist.js"></script>
+<script>
+(function() {
+  const sub = new Substrate();
+  const codeEl = document.getElementById('code');
+  const eventsEl = document.getElementById('events');
+  const cellCount = document.getElementById('cell-count');
+  const status = document.getElementById('status');
+
+  function render() {
+    cellCount.textContent = sub.cellCount();
+    eventsEl.innerHTML = sub.events.map(ev => {
+      const op = ev.op, id = ev.id || '', val = JSON.stringify(ev.value);
+      return `<div class="event ${op}"><span class="op">${op}</span> <span class="id">${id}</span> ${val}</div>`;
+    }).join('') || '<div style="color: var(--ink-3); font-size: 0.85rem; padding: 0.4rem;">No events yet. Click Run.</div>';
+    eventsEl.scrollTop = eventsEl.scrollHeight;
+  }
+
+  document.getElementById('run').onclick = () => {
+    sub.events = []; sub.cells.clear(); sub.links.clear(); sub.t = 0;
+    try { new Function('sub', codeEl.value)(sub); }
+    catch (e) { status.textContent = 'Error: ' + e.message; status.style.color = 'var(--red)'; return; }
+    status.textContent = `Ran ${sub.events.length} events`; status.style.color = 'var(--ink-3)';
+    render();
+  };
+  document.getElementById('reset').onclick = () => { sub.events = []; sub.cells.clear(); sub.links.clear(); sub.t = 0; render(); };
+
+  function banner(m) {
+    const b = document.getElementById('banner');
+    b.textContent = m; b.classList.add('show');
+    setTimeout(() => b.classList.remove('show'), 3000);
+  }
+  document.getElementById('save-local').onclick = () => { QuiltPersist.saveLocal(sub); banner('✓ Saved to localStorage'); };
+  document.getElementById('save-cloud').onclick = async () => {
+    try { const e = await QuiltPersist.saveCloud(sub, 'Lesson 5 - TICK'); banner('✓ Saved to cloud: ' + e.id); }
+    catch { banner('✗ Cloud save failed (Worker not configured). Local save still works.'); }
+  };
+  document.getElementById('export').onclick = async () => {
+    const text = await QuiltPersist.exportSaddleBridge(sub);
+    const blob = new Blob([text], { type: 'application/jsonl' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = `quilt-lesson-5-${Date.now()}.jsonl`; a.click();
+    URL.revokeObjectURL(url);
+    banner('✓ Downloaded');
+  };
+  render();
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>config · A versioned config · Quilt Apps</title>
+<link rel="stylesheet" href="/assets/css/quilt.css" />
+</head>
+<body>
+
+<header class="quilt">
+  <div class="row">
+    <a class="brand" href="/">Quilt<span class="dot">·</span></a>
+    <nav>
+      <a href="/academy/">Academy</a>
+      <a href="/repl/">REPL</a>
+      <a href="/playground/">Playground</a>
+      <a href="/apps/" class="active">Apps</a>
+      <a href="/boundaries/">Boundaries</a>
+      <a href="/vms/">VMs</a>
+      <a href="/canon/">Canon</a>
+      <a href="/self-host/">Self-host</a>
+    </nav>
+    <div class="right">App 3 of 5</div>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <h1>A <span style="color:var(--green)">versioned config</span> in 70 lines</h1>
+    <p class="lede">
+      Every change to the config is an event in the journal.
+      The journal is the source of truth. Roll back to any past
+      state. The substrate's job is time travel.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="num">01</span><span>Current config</span><span class="rule"></span></h2>
+    <div class="app-output" id="current">No config keys yet. Add one below.</div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span><span>Add or change</span><span class="rule"></span></h2>
+    <div class="app-form" style="margin-bottom: 1rem;">
+      <input type="text" id="key" placeholder="config key" style="width: 200px;" value="theme" />
+      <input type="text" id="value" placeholder="value" style="width: 300px;" value="dark" />
+      <button id="set">SET</button>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">03</span><span>History (every change is recorded)</span><span class="rule"></span></h2>
+    <p class="lead">
+      Click any past event to roll back to that state. The
+      config cells will return to their values at that point in
+      time.
+    </p>
+    <table>
+      <thead><tr><th>#</th><th>Time</th><th>Op</th><th>Key</th><th>Value</th><th>Action</th></tr></thead>
+      <tbody id="history-table"></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2><span class="num">04</span><span>Take it with you</span><span class="rule"></span></h2>
+    <div class="app-form">
+      <button id="save-local">💾 Save</button>
+      <button id="save-cloud" class="secondary">☁ Cloud</button>
+      <button id="export" class="secondary">↓ Export</button>
+      <button id="reset" class="ghost">↻ Reset to v0</button>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">05</span><span>The pattern</span><span class="rule"></span></h2>
+    <p class="lead">
+      The journal IS the config history. There's no separate
+      "audit log" — every BIND, every EFFECT, every TICK is in
+      the journal. To roll back, replay the journal up to a
+      point. The substrate does the rest.
+    </p>
+    <p class="lead">
+      Compare to Git: Git's commit log is a journal. Git's
+      checkout is replay-to-a-point. Git's diff is
+      journal-segmentation. The substrate is Git for
+      application state, with the journal always in memory.
+    </p>
+  </section>
+</main>
+
+<div class="saved-banner" id="banner"></div>
+
+<script src="/assets/js/substrate.js"></script>
+<script src="/assets/js/persist.js"></script>
+<script>
+(function() {
+  const sub = new Substrate();
+  const current = document.getElementById('current');
+  const table = document.getElementById('history-table');
+
+  const saved = localStorage.getItem('config-app');
+  if (saved) sub.fromJSONL(saved);
+
+  function snapshot() {
+    const snap = {};
+    for (const [name, cell] of sub.cells) {
+      if (!name.startsWith('__')) snap[name] = cell.value;
+    }
+    return snap;
+  }
+
+  function render() {
+    const snap = snapshot();
+    current.textContent = JSON.stringify(snap, null, 2);
+    // history
+    table.innerHTML = '';
+    sub.events.forEach((ev, i) => {
+      if (ev.op !== 'BIND') return;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${i}</td><td>t=${ev.t}</td><td><code class="op">BIND</code></td><td><code>${ev.id}</code></td><td>${JSON.stringify(ev.value)}</td><td><button class="ghost" onclick="rollback(${i})">↶ Roll back here</button></td>`;
+      table.appendChild(tr);
+    });
+    localStorage.setItem('config-app', sub.toJSONL());
+  }
+
+  window.rollback = (idx) => {
+    // Replay journal up to idx
+    const fresh = new Substrate();
+    for (let i = 0; i <= idx; i++) {
+      const ev = sub.events[i];
+      if (ev.op === 'BIND') fresh.bind(ev.id, ev.value);
+      else if (ev.op === 'TICK') fresh.tick();
+    }
+    sub.cells = fresh.cells;
+    sub.events = fresh.events;
+    sub.t = fresh.t;
+    render();
+    banner(`✓ Rolled back to v${idx}`);
+  };
+
+  document.getElementById('set').onclick = () => {
+    const k = document.getElementById('key').value.trim();
+    const v = document.getElementById('value').value;
+    if (!k) return;
+    let parsed = v;
+    try { parsed = JSON.parse(v); } catch (e) {}
+    sub.bind(k, parsed);
+    sub.tick();
+    render();
+  };
+
+  function banner(m) { const b = document.getElementById('banner'); b.textContent = m; b.classList.add('show'); setTimeout(() => b.classList.remove('show'), 3000); }
+  document.getElementById('save-local').onclick = () => { QuiltPersist.saveLocal(sub); banner('✓ Saved'); };
+  document.getElementById('save-cloud').onclick = async () => { try { const e = await QuiltPersist.saveCloud(sub, 'config-app'); banner('☁ ' + e.id); } catch { banner('✗ Cloud failed'); } };
+  document.getElementById('export').onclick = async () => {
+    const text = await QuiltPersist.exportSaddleBridge(sub);
+    const blob = new Blob([text], { type: 'application/jsonl' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `config-${Date.now()}.jsonl`; a.click();
+    banner('↓ Exported');
+  };
+  document.getElementById('reset').onclick = () => { rollback(0); };
+
+  render();
+})();
+</script>
+</body>
+</html>

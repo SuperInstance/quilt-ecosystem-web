@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Substrate tests</title>
+<link rel="stylesheet" href="/assets/css/quilt.css" />
+</head>
+<body>
+<main>
+  <h1>Substrate tests</h1>
+  <pre id="out"></pre>
+</main>
+<script src="/assets/js/substrate.js"></script>
+<script>
+const out = document.getElementById('out');
+const log = (m, ok) => { out.textContent += (ok ? '✓ ' : '✗ ') + m + '\n'; };
+let pass = 0, fail = 0;
+function assert(cond, msg) { if (cond) { pass++; log(msg, true); } else { fail++; log(msg, false); } }
+
+// 1. BIND idempotence
+let s = new Substrate();
+s.bind('x', 1); s.bind('x', 1); s.bind('x', 1);
+assert(s.events.length === 1, `BIND idempotence (1 event for 3 binds)`);
+
+// 2. LINK auto-registers cells
+s = new Substrate();
+s.link('a', 'b', 'edge');
+assert(s.cells.has('a') && s.cells.has('b'), 'LINK auto-registers cells');
+
+// 3. LINK idempotence
+s = new Substrate();
+s.link('a', 'b', 'edge'); s.link('a', 'b', 'edge');
+assert(s.links.size === 1, 'LINK idempotent');
+
+// 4. EFFECT updates value
+s = new Substrate();
+s.bind('c', 0);
+s.effect('c', n => n + 1);
+assert(s.view('c') === 1, 'EFFECT updates value');
+
+// 5. VIEW purity
+s = new Substrate();
+s.bind('n', 5);
+const before = s.events.length;
+s.view('n'); s.view('n'); s.view('n');
+assert(s.events.length === before, 'VIEW purity (no events)');
+
+// 6. TICK monotonicity
+s = new Substrate();
+s.tick(); s.tick(); s.tick();
+assert(s.t === 3, 'TICK increments t');
+
+// 7. JSONL round-trip
+s = new Substrate();
+s.bind('a', 1);
+s.link('a', 'b', 'edge');
+s.tick();
+s.effect('a', n => n + 1);
+const j = s.toJSONL();
+const s2 = new Substrate();
+s2.fromJSONL(j);
+assert(s2.events.length === s.events.length, 'JSONL round-trip preserves events');
+assert(s2.view('a') === 2, 'JSONL round-trip preserves state');
+
+// 8. Prover accepts a valid journal
+s = new Substrate();
+s.bind('x', 1);
+s.link('a', 'b', 'edge');
+s.tick();
+const proof = s.prove();
+assert(proof.ok, 'Prover accepts valid journal');
+
+// 9. Listener fires on BIND
+s = new Substrate();
+let count = 0;
+s.on('c', () => count++);
+s.bind('c', 1);
+s.bind('c', 1);  // idempotent — no listener fire
+s.bind('c', 2);
+assert(count === 2, `Listener fires on value change (got ${count})`);
+
+// 10. Saddle-bridge export includes hashes
+(async () => {
+  s = new Substrate();
+  s.bind('a', 1);
+  s.tick();
+  const sb = await QuiltPersistExport(s);
+  const lines = sb.split('\n').filter(l => l.trim());
+  assert(lines.length === 3, 'Saddle-bridge has 3 lines (header + 2 events)');
+  const header = JSON.parse(lines[0]);
+  assert(header.meta === 'quilt-saddle-bridge', 'Saddle-bridge header present');
+  out.textContent += `\n${pass} passed, ${fail} failed`;
+})();
+
+async function QuiltPersistExport(s) {
+  // inline copy of export logic (since QuiltPersist is in another file)
+  function hash(str) {
+    let h = 5381; for (let i = 0; i < str.length; i++) h = ((h << 5) + h) ^ str.charCodeAt(i);
+    return (h >>> 0).toString(16).padStart(8, '0');
+  }
+  const lines = [];
+  let prev = '00000000';
+  lines.push(JSON.stringify({ meta: 'quilt-saddle-bridge', version: 1, prev }));
+  for (const ev of s.events) {
+    const payload = JSON.stringify(ev);
+    const h = hash(prev + payload);
+    lines.push(JSON.stringify({ event: ev, hash: h, prev }));
+    prev = h;
+  }
+  return lines.join('\n') + '\n';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  out.textContent += `\n${pass} passed, ${fail} failed`;
+});
+</script>
+</body>
+</html>

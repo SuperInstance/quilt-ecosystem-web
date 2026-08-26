@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>The 5 VMs · Quilt</title>
+<link rel="stylesheet" href="/assets/css/quilt.css" />
+</head>
+<body>
+
+<header class="quilt">
+  <div class="row">
+    <a class="brand" href="/">Quilt<span class="dot">·</span></a>
+    <nav>
+      <a href="/academy/">Academy</a>
+      <a href="/repl/">REPL</a>
+      <a href="/playground/">Playground</a>
+      <a href="/apps/">Apps</a>
+      <a href="/boundaries/">Boundaries</a>
+      <a href="/vms/" class="active">VMs</a>
+      <a href="/canon/">Canon</a>
+      <a href="/self-host/">Self-host</a>
+    </nav>
+    <div class="right">5 languages</div>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <h1>The 5 <span style="color:var(--amber)">VMs</span></h1>
+    <p class="lede">
+      The same 5 opcodes, ported to 5 languages. Each VM is a
+      door into the same idea. The metaphor is local; the
+      substrate is the same.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="num">01</span><span>Side by side</span><span class="rule"></span></h2>
+    <div class="cards">
+      <a class="card" href="https://github.com/SuperInstance/quilt-vm-c">
+        <h3>quilt-vm-c</h3>
+        <p>The desert. C99, 0.11ms runtime, the bare metal. The cowboy's day-job language.</p>
+        <span class="tag">C99 · 0.11ms</span>
+      </a>
+      <a class="card" href="https://github.com/SuperInstance/quilt-vm-rust">
+        <h3>quilt-vm-rust</h3>
+        <p>The workshop. Rust, the cowboy's safer language. Memory-safe, idiomatic.</p>
+        <span class="tag">Rust · idiomatic</span>
+      </a>
+      <a class="card" href="https://github.com/SuperInstance/quilt-vm-typescript">
+        <h3>quilt-vm-typescript</h3>
+        <p>The city. TypeScript, agents, Cordis-native. The web-native port.</p>
+        <span class="tag">TypeScript · web</span>
+      </a>
+      <a class="card" href="https://github.com/SuperInstance/quilt-vm-haskell">
+        <h3>quilt-vm-haskell</h3>
+        <p>The cathedral. Haskell, the algebraic port. The math is the type system.</p>
+        <span class="tag">Haskell · algebraic</span>
+      </a>
+      <a class="card" href="https://github.com/SuperInstance/quilt-vm-wasm">
+        <h3>quilt-vm-wasm</h3>
+        <p>The campfire. WASM, runs in any browser. The cowboy's tent.</p>
+        <span class="tag">WASM · portable</span>
+      </a>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span><span>The 5 opcodes, in 5 languages</span><span class="rule"></span></h2>
+    <p class="lead">
+      Compare. The shape is the same. The syntax is local. The
+      substrate is universal.
+    </p>
+    <pre><code><span class="com">// C (quilt-vm-c)</span>
+substrate_bind(sub, <span class="str">"greeting"</span>, json_string(<span class="str">"hello"</span>));
+substrate_link(sub, <span class="str">"alice"</span>, <span class="str">"bob"</span>, <span class="str">"friend"</span>);
+substrate_view(sub, <span class="str">"greeting"</span>);
+
+<span class="com">// Rust (quilt-vm-rust)</span>
+sub.bind(<span class="str">"greeting"</span>, json!(<span class="str">"hello"</span>));
+sub.link(<span class="str">"alice"</span>, <span class="str">"bob"</span>, <span class="str">"friend"</span>);
+sub.view(<span class="str">"greeting"</span>);
+
+<span class="com">// TypeScript (quilt-vm-typescript)</span>
+sub.bind(<span class="str">'greeting'</span>, <span class="str">'hello'</span>);
+sub.link(<span class="str">'alice'</span>, <span class="str">'bob'</span>, <span class="str">'friend'</span>);
+sub.view(<span class="str">'greeting'</span>);
+
+<span class="com">// Haskell (quilt-vm-haskell)</span>
+bind <span class="str">"greeting"</span> (toJSON <span class="str">"hello"</span>)
+link <span class="str">"alice"</span> <span class="str">"bob"</span> <span class="str">"friend"</span>
+view <span class="str">"greeting"</span>
+
+<span class="com">// WASM (quilt-vm-wasm)</span>
+<span class="com">;; binary format: opcode + operands</span>
+<span class="com">;; (wasm is the runtime, not the source language)</span></code></pre>
+  </section>
+</main>
+
+<footer class="quilt">
+  <div class="row">
+    <div class="col">
+      <h4>Documentation</h4>
+      <ul>
+        <li><a href="/academy/">Quilt Academy</a> · 7 lessons</li>
+        <li><a href="/boundaries/">Laminar Boundaries</a> · 15 boundaries</li>
+      </ul>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Playground · Quilt</title>
+<link rel="stylesheet" href="/assets/css/quilt.css" />
+</head>
+<body>
+
+<header class="quilt">
+  <div class="row">
+    <a class="brand" href="/">Quilt<span class="dot">·</span></a>
+    <nav>
+      <a href="/academy/">Academy</a>
+      <a href="/repl/">REPL</a>
+      <a href="/playground/" class="active">Playground</a>
+      <a href="/apps/">Apps</a>
+      <a href="/boundaries/">Boundaries</a>
+      <a href="/vms/">VMs</a>
+      <a href="/canon/">Canon</a>
+      <a href="/self-host/">Self-host</a>
+    </nav>
+    <div class="right">visual cell editor</div>
+  </div>
+</header>
+
+<main class="wide">
+  <section class="hero">
+    <h1>The <span style="color:var(--green)">Playground</span></h1>
+    <p class="lede">
+      Drag boxes to make cells. Drag from one cell to another
+      to draw a LINK. Click a cell to BIND a value. Watch the
+      substrate form. Save your graph, share a URL, take it
+      offline.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="num">01</span><span>The canvas</span><span class="rule"></span></h2>
+    <div class="app-form" style="margin-bottom: 0.6rem;">
+      <button id="new-cell">+ New cell</button>
+      <button id="clear-all" class="ghost">Clear all</button>
+      <span style="color: var(--ink-3); font-size: 0.85rem; font-family: var(--mono); margin-left: 1rem;">
+        Tip: drag from a cell's right edge to another cell's left edge to link them
+      </span>
+      <button id="save-local" class="secondary" style="margin-left: auto;">💾 Save</button>
+      <button id="save-cloud" class="secondary">☁ Cloud</button>
+      <button id="export" class="secondary">↓ Export</button>
+    </div>
+    <svg id="canvas" width="100%" height="540" style="background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r); cursor: crosshair;"></svg>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span><span>Selected cell</span><span class="rule"></span></h2>
+    <div id="inspector" style="background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r); padding: 1rem 1.2rem;">
+      <div style="color: var(--ink-3); font-size: 0.9rem;">Click a cell to inspect it.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">03</span><span>Journal</span><span class="rule"></span></h2>
+    <div class="journal" style="max-height: 200px;">
+      <div class="events" id="events"></div>
+    </div>
+  </section>
+</main>
+
+<div class="saved-banner" id="banner"></div>
+
+<script src="/assets/js/substrate.js"></script>
+<script src="/assets/js/persist.js"></script>
+<script>
+(function() {
+  const sub = new Substrate();
+  const canvas = document.getElementById('canvas');
+  const eventsEl = document.getElementById('events');
+  const inspector = document.getElementById('inspector');
+  const W = () => canvas.clientWidth;
+  const H = () => canvas.clientHeight;
+
+  // Load saved
+  const saved = localStorage.getItem('playground');
+  if (saved) {
+    const data = JSON.parse(saved);
+    sub.fromJSONL(data.jsonl);
+  }
+
+  // Cell positions stored in a separate map
+  const positions = new Map();  // name -> { x, y }
+  const saved_pos = localStorage.getItem('playground-positions');
+  if (saved_pos) {
+    const obj = JSON.parse(saved_pos);
+    for (const [k, v] of Object.entries(obj)) positions.set(k, v);
+  }
+
+  let drag = null;  // { from, kind: 'cell' | 'link' }
+  let selected = null;
+  let nextCellId = 1;
+
+  // ── Render ─────────────────────────────────────────────────────────
+  function render() {
+    const w = W(), h = H();
+    let svg = '';
+    // Draw links first (so they appear behind cells)
+    for (const [key, _] of sub.links) {
+      const [from, to, rel] = key.split('|');
+      const p1 = positions.get(from), p2 = positions.get(to);
+      if (!p1 || !p2) continue;
+      const x1 = p1.x + 100, y1 = p1.y + 30;
+      const x2 = p2.x, y2 = p2.y + 30;
+      const mx = (x1 + x2) / 2;
+      svg += `<path d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}" stroke="var(--blue)" stroke-width="1.5" fill="none" marker-end="url(#arrow)" opacity="0.6" />`;
+      svg += `<text x="${mx}" y="${(y1 + y2) / 2 - 6}" fill="var(--blue)" font-size="11" text-anchor="middle" font-family="ui-monospace">${rel}</text>`;
+    }
+    svg += `<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--blue)" opacity="0.6"/></marker></defs>`;
+    // Draw cells
+    for (const [name, cell] of sub.cells) {
+      const p = positions.get(name) || { x: 100, y: 100 };
+      const isSelected = name === selected;
+      const fill = isSelected ? 'var(--bg-4)' : 'var(--bg-3)';
+      const stroke = isSelected ? 'var(--amber)' : 'var(--line)';
+      const val = JSON.stringify(cell.value);
+      const valShort = val.length > 18 ? val.slice(0, 16) + '…' : val;
+      svg += `
+        <g class="cell" data-name="${name}" transform="translate(${p.x}, ${p.y})">
+          <rect width="200" height="60" rx="6" fill="${fill}" stroke="${stroke}" stroke-width="1.5" style="cursor: move;" />
+          <text x="12" y="22" fill="var(--amber)" font-size="13" font-family="ui-monospace" font-weight="600">${name}</text>
+          <text x="12" y="44" fill="var(--ink-2)" font-size="11" font-family="ui-monospace">${valShort}</text>
+          <circle cx="200" cy="30" r="6" fill="var(--blue)" data-link-from="${name}" style="cursor: crosshair;" />
+        </g>`;
+    }
+    canvas.innerHTML = svg;
+
+    // Wire up handlers
+    canvas.querySelectorAll('.cell').forEach(g => {
+      const name = g.dataset.name;
+      const rect = g.querySelector('rect');
+      const linkDot = g.querySelector('[data-link-from]');
+      // Drag cell
+      rect.addEventListener('mousedown', (e) => {
+        const p = positions.get(name);
+        drag = { kind: 'cell', name, dx: e.offsetX, dy: e.offsetY };
+        e.stopPropagation();
+      });
+      // Click to select
+      rect.addEventListener('click', (e) => { selectCell(name); e.stopPropagation(); });
+      // Drag link from dot
+      linkDot.addEventListener('mousedown', (e) => {
+        drag = { kind: 'link', from: name };
+        e.stopPropagation();
+      });
+    });
+
+    // Journal
+    eventsEl.innerHTML = sub.events.map(ev =>
+      `<div class="event ${ev.op}"><span class="op">${ev.op}</span> <span class="id">${ev.id || ''}</span> ${JSON.stringify(ev.value)}</div>`
+    ).join('') || '<div style="color: var(--ink-3); font-size: 0.85rem; padding: 0.4rem;">No events yet. Add a cell.</div>';
+    eventsEl.scrollTop = eventsEl.scrollHeight;
+
+    localStorage.setItem('playground-positions', JSON.stringify(Object.fromEntries(positions)));
+  }
+
+  function selectCell(name) {
+    selected = name;
+    const cell = sub.cell(name);
+    inspector.innerHTML = `
+      <div style="display: flex; gap: 0.8rem; align-items: baseline;">
+        <code style="color: var(--amber); font-size: 1.1rem; font-weight: 600;">${name}</code>
+        <span class="pill">v${cell.version}</span>
+      </div>
+      <div style="margin-top: 0.6rem;">
+        <label style="color: var(--ink-3); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em;">Value (BIND)</label>
+        <div class="app-form" style="margin-top: 0.3rem;">
+          <input type="text" id="bind-input" value="${JSON.stringify(cell.value)}" style="flex: 1;" />
+          <button id="bind-btn">BIND</button>
+        </div>
+        <label style="color: var(--ink-3); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; display: block; margin-top: 0.6rem;">Listeners (${cell.listeners.length})</label>
+        <label style="color: var(--ink-3); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; display: block; margin-top: 0.6rem;">Linked to</label>
+        <div>${[...sub.links.keys()].filter(k => k.startsWith(name + '|')).map(k => '<span class="pill blue" style="margin-right: 0.3rem;">' + k + '</span>').join('') || '<span style="color: var(--ink-3);">none</span>'}</div>
+        <label style="color: var(--ink-3); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; display: block; margin-top: 0.6rem;">Linked from</label>
+        <div>${[...sub.links.keys()].filter(k => k.split('|')[1] === name).map(k => '<span class="pill amber" style="margin-right: 0.3rem;">' + k + '</span>').join('') || '<span style="color: var(--ink-3);">none</span>'}</div>
+      </div>`;
+    document.getElementById('bind-btn').onclick = () => {
+      let v = document.getElementById('bind-input').value;
+      try { v = JSON.parse(v); } catch (e) {}
+      sub.bind(name, v);
+      render();
+    };
+    render();
+  }
+
+  // ── Mouse handlers ────────────────────────────────────────────────
+  canvas.addEventListener('mousemove', (e) => {
+    if (!drag) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left, y = e.clientY - rect.top;
+    if (drag.kind === 'cell') {
+      const p = positions.get(drag.name) || { x, y };
+      p.x = x - drag.dx;
+      p.y = y - drag.dy;
+      positions.set(drag.name, p);
+      render();
+    } else if (drag.kind === 'link') {
+      // Show a preview line
+      const from = positions.get(drag.from);
+      if (from) {
+        const overlay = document.getElementById('link-preview') || (() => {
+          const svg = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          svg.id = 'link-preview';
+          svg.setAttribute('stroke', 'var(--amber)');
+          svg.setAttribute('stroke-width', '2');
+          svg.setAttribute('stroke-dasharray', '4,4');
+          canvas.appendChild(svg);
+          return svg;
+        })();
+        overlay.setAttribute('x1', from.x + 200);
+        overlay.setAttribute('y1', from.y + 30);
+        overlay.setAttribute('x2', x);
+        overlay.setAttribute('y2', y);
+      }
+    }
+  });
+  canvas.addEventListener('mouseup', (e) => {
+    if (drag && drag.kind === 'link') {
+      const target = document.elementFromPoint(e.clientX, e.clientY);
+      if (target) {
+        const cell = target.closest('.cell');
+        if (cell) {
+          const toName = cell.dataset.name;
+          if (toName && toName !== drag.from) {
+            const rel = prompt('Relationship name (e.g. friend, owns, dependsOn):', 'edge');
+            if (rel) {
+              sub.link(drag.from, toName, rel);
+              render();
+            }
+          }
+        }
+      }
+    }
+    drag = null;
+    const preview = document.getElementById('link-preview');
+    if (preview) preview.remove();
+  });
+
+  // ── Toolbar ───────────────────────────────────────────────────────
+  document.getElementById('new-cell').onclick = () => {
+    const name = 'cell-' + (nextCellId++);
+    sub.bind(name, '');
+    const positions_count = positions.size;
+    positions.set(name, {
+      x: 100 + (positions_count % 5) * 240,
+      y: 100 + Math.floor(positions_count / 5) * 100,
+    });
+    render();
+  };
+  document.getElementById('clear-all').onclick = () => {
+    if (!confirm('Clear all cells and links?')) return;
+    sub.cells.clear(); sub.links.clear(); sub.events = []; sub.t = 0;
+    positions.clear();
+    render();
+  };
+
+  function banner(m) { const b = document.getElementById('banner'); b.textContent = m; b.classList.add('show'); setTimeout(() => b.classList.remove('show'), 3000); }
+  document.getElementById('save-local').onclick = () => {
+    localStorage.setItem('playground', JSON.stringify({ jsonl: sub.toJSONL() }));
+    banner('✓ Saved to localStorage');
+  };
+  document.getElementById('save-cloud').onclick = async () => {
+    try { const e = await QuiltPersist.saveCloud(sub, 'playground'); banner('☁ Saved: ' + e.id); }
+    catch { banner('✗ Cloud save failed. Local save still works.'); }
+  };
+  document.getElementById('export').onclick = async () => {
+    const text = await QuiltPersist.exportSaddleBridge(sub);
+    const blob = new Blob([text], { type: 'application/jsonl' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `playground-${Date.now()}.jsonl`; a.click();
+    banner('↓ Exported');
+  };
+
+  render();
+})();
+</script>
+
+</body>
+</html>

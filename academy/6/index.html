@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Lesson 6 · LAWS · Quilt Academy</title>
+<link rel="stylesheet" href="/assets/css/quilt.css" />
+</head>
+<body>
+
+<header class="quilt">
+  <div class="row">
+    <a class="brand" href="/">Quilt<span class="dot">·</span></a>
+    <nav>
+      <a href="/academy/" class="active">Academy</a>
+      <a href="/repl/">REPL</a>
+      <a href="/playground/">Playground</a>
+      <a href="/apps/">Apps</a>
+      <a href="/boundaries/">Boundaries</a>
+      <a href="/vms/">VMs</a>
+      <a href="/canon/">Canon</a>
+      <a href="/self-host/">Self-host</a>
+    </nav>
+    <div class="right">Lesson 6 of 7</div>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <h1><span style="color:var(--amber)">LAWS</span> — why this is algebra, not just a protocol</h1>
+    <p class="lede">Each of the 5 opcodes has a law. The laws are what make the substrate composable, replayable, and provable. If your code obeys the laws, the substrate can optimize it, parallelize it, and roll it back safely.</p>
+  </section>
+
+  <section>
+    <h2><span class="num">01</span><span>The shape</span><span class="rule"></span></h2>
+    <p class="lead">Each of the 5 opcodes has a law. The laws are what make the substrate composable, replayable, and provable. If your code obeys the laws, the substrate can optimize it, parallelize it, and roll it back safely.</p>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span><span>Try it</span><span class="rule"></span></h2>
+    <div class="repl-grid">
+      <div class="editor">
+        <div class="toolbar">
+          <span class="file">lesson-6.js</span>
+          <button class="secondary" id="run">▶ Run</button>
+          <button class="ghost" id="reset">↻ Reset</button>
+        </div>
+        <textarea id="code" spellcheck="false">// Lesson 6: The 5 laws
+// Try to break them. The substrate will catch you.
+
+// 1. BIND idempotence: same name + value = same event
+sub.bind('x', 1);
+sub.bind('x', 1);  // no event (idempotent)
+sub.bind('x', 2);  // event (different value)
+
+// 2. LINK transitivity: a→b, b→c implies a→c
+sub.link('alice', 'bob', 'friend');
+sub.link('bob', 'carol', 'friend');
+// alice→carol is implied by transitivity
+
+// 3. EFFECT associativity: order of composition doesn't matter
+sub.bind('counter', 0);
+sub.effect('counter', (n) => (n || 0) + 1);
+sub.effect('counter', (n) => (n || 0) * 2);
+sub.effect('counter', (n) => (n || 0) - 1);
+// = ((0 + 1) * 2) - 1 = 1
+// = ((0 - 1) + 1) * 2 = 0
+// The substrate records both, replays both
+
+// 4. VIEW purity: no journal pollution
+sub.bind('name', 'Casey');
+const x1 = sub.view('name');
+const x2 = sub.view('name');
+// x1 === x2; the journal is unchanged
+
+// 5. TICK monotonicity: time only moves forward
+sub.tick(0.1);
+sub.tick(0.2);
+sub.tick(0.1);
+// All t values are increasing</textarea>
+      </div>
+      <div class="journal">
+        <div class="toolbar">
+          <span class="title">Journal · cells: <span id="cell-count">0</span></span>
+        </div>
+        <div class="events" id="events"></div>
+      </div>
+    </div>
+    <div class="app-form" style="margin-top: 1rem;">
+      <button id="save-local">💾 Save local</button>
+      <button id="save-cloud" class="secondary">☁ Save to cloud</button>
+      <button id="export" class="secondary">↓ Export JSONL</button>
+      <span id="status" style="color: var(--ink-3); font-size: 0.85rem; font-family: var(--mono); margin-left: auto;"></span>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">03</span><span>What the laws buy you</span><span class="rule"></span></h2>
+    <p class="lead">When your code obeys the 5 laws, the substrate can:<br><br>• <strong>Replay</strong>: the journal IS the state. Replay produces the same state every time.<br>• <strong>Roll back</strong>: the journal is a list. Remove the tail, you have the past.<br>• <strong>Parallelize</strong>: the laws tell you which operations commute. The substrate can reorder for speed.<br>• <strong>Prove</strong>: the substrate can verify that a sequence of events obeys the laws. The prover in quilt-substrate-meta does this.<br><br>This is what makes the substrate an algebra, not just a protocol. The laws are the algebra's axioms.</p>
+  </section>
+
+  <section>
+    <h2><span class="num">04</span><span>What you can build</span><span class="rule"></span></h2>
+    <p class="lead">A substrate that can run anywhere. The same journal replays to the same state on a $2 ESP32 or a 64-core server. The laws are the contract.</p>
+  </section>
+
+  <section>
+    <h2><span class="num">05</span><span>Next</span><span class="rule"></span></h2>
+    <p class="lead">Now let's build something real. <a href="/academy/7/">Lesson 7: Build your first app →</a></p>
+  </section>
+</main>
+
+<div class="saved-banner" id="banner"></div>
+
+<script src="/assets/js/substrate.js"></script>
+<script src="/assets/js/persist.js"></script>
+<script>
+(function() {
+  const sub = new Substrate();
+  const codeEl = document.getElementById('code');
+  const eventsEl = document.getElementById('events');
+  const cellCount = document.getElementById('cell-count');
+  const status = document.getElementById('status');
+
+  function render() {
+    cellCount.textContent = sub.cellCount();
+    eventsEl.innerHTML = sub.events.map(ev => {
+      const op = ev.op, id = ev.id || '', val = JSON.stringify(ev.value);
+      return `<div class="event ${op}"><span class="op">${op}</span> <span class="id">${id}</span> ${val}</div>`;
+    }).join('') || '<div style="color: var(--ink-3); font-size: 0.85rem; padding: 0.4rem;">No events yet. Click Run.</div>';
+    eventsEl.scrollTop = eventsEl.scrollHeight;
+  }
+
+  document.getElementById('run').onclick = () => {
+    sub.events = []; sub.cells.clear(); sub.links.clear(); sub.t = 0;
+    try { new Function('sub', codeEl.value)(sub); }
+    catch (e) { status.textContent = 'Error: ' + e.message; status.style.color = 'var(--red)'; return; }
+    status.textContent = `Ran ${sub.events.length} events`; status.style.color = 'var(--ink-3)';
+    render();
+  };
+  document.getElementById('reset').onclick = () => { sub.events = []; sub.cells.clear(); sub.links.clear(); sub.t = 0; render(); };
+
+  function banner(m) {
+    const b = document.getElementById('banner');
+    b.textContent = m; b.classList.add('show');
+    setTimeout(() => b.classList.remove('show'), 3000);
+  }
+  document.getElementById('save-local').onclick = () => { QuiltPersist.saveLocal(sub); banner('✓ Saved to localStorage'); };
+  document.getElementById('save-cloud').onclick = async () => {
+    try { const e = await QuiltPersist.saveCloud(sub, 'Lesson 6 - LAWS'); banner('✓ Saved to cloud: ' + e.id); }
+    catch { banner('✗ Cloud save failed (Worker not configured). Local save still works.'); }
+  };
+  document.getElementById('export').onclick = async () => {
+    const text = await QuiltPersist.exportSaddleBridge(sub);
+    const blob = new Blob([text], { type: 'application/jsonl' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = `quilt-lesson-6-${Date.now()}.jsonl`; a.click();
+    URL.revokeObjectURL(url);
+    banner('✓ Downloaded');
+  };
+  render();
+})();
+</script>
+
+</body>
+</html>

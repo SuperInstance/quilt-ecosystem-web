@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Lesson 2 · LINK · Quilt Academy</title>
+<link rel="stylesheet" href="/assets/css/quilt.css" />
+</head>
+<body>
+
+<header class="quilt">
+  <div class="row">
+    <a class="brand" href="/">Quilt<span class="dot">·</span></a>
+    <nav>
+      <a href="/academy/" class="active">Academy</a>
+      <a href="/repl/">REPL</a>
+      <a href="/playground/">Playground</a>
+      <a href="/apps/">Apps</a>
+      <a href="/boundaries/">Boundaries</a>
+      <a href="/vms/">VMs</a>
+      <a href="/canon/">Canon</a>
+      <a href="/self-host/">Self-host</a>
+    </nav>
+    <div class="right">Lesson 2 of 7</div>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <h1><span style="color:var(--blue)">LINK</span> — draw a typed relationship</h1>
+    <p class="lede">
+      LINK says: <em>this cell relates to that cell in this way</em>.
+      Like drawing an arrow on a whiteboard, except the arrow has
+      a label and the whole graph is recorded in the journal.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="num">01</span><span>The shape of LINK</span><span class="rule"></span></h2>
+    <p class="lead">
+      LINK takes three arguments: a from-cell, a to-cell, and a
+      relationship name (the type of the arrow). The arrow is
+      recorded in the journal. The cells are auto-created if
+      they don't exist yet.
+    </p>
+<pre><code>substrate.link(<span class="str">"alice"</span>, <span class="str">"bob"</span>, <span class="str">"friend"</span>);
+substrate.link(<span class="str">"alice"</span>, <span class="str">"coworker"</span>, <span class="str">"worksAt"</span>);
+// journal: [
+//   { op: <span class="str">"BIND"</span>, id: <span class="str">"alice"</span>, value: undefined, t: 0 },
+//   { op: <span class="str">"BIND"</span>, id: <span class="str">"bob"</span>, value: undefined, t: 0 },
+//   { op: <span class="str">"LINK"</span>, id: <span class="str">"alice→bob"</span>, value: <span class="str">"friend"</span>, t: 0 },
+//   { op: <span class="str">"BIND"</span>, id: <span class="str">"coworker"</span>, value: undefined, t: 0 },
+//   { op: <span class="str">"LINK"</span>, id: <span class="str">"alice→coworker"</span>, value: <span class="str">"worksAt"</span>, t: 0 }
+// ]</code></pre>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span><span>Try it</span><span class="rule"></span></h2>
+    <div class="repl-grid">
+      <div class="editor">
+        <div class="toolbar">
+          <span class="file">lesson-2.js</span>
+          <button class="secondary" id="run">▶ Run</button>
+          <button class="ghost" id="reset">↻ Reset</button>
+        </div>
+        <textarea id="code" spellcheck="false">// Lesson 2: LINK
+// Build a small social graph.
+
+sub.bind('alice', { name: 'Alice', age: 30 });
+sub.bind('bob',   { name: 'Bob',   age: 28 });
+sub.bind('carol', { name: 'Carol', age: 32 });
+
+// Now draw arrows
+sub.link('alice', 'bob',   'friend');
+sub.link('alice', 'carol', 'friend');
+sub.link('bob',   'carol', 'colleague');
+
+// Add a hobby graph
+sub.bind('hiking', 'hiking');
+sub.link('alice', 'hiking', 'enjoys');
+sub.link('bob',   'hiking', 'enjoys');
+sub.link('carol', 'reading', 'enjoys');
+
+sub.bind('reading', 'reading');</textarea>
+      </div>
+      <div class="journal">
+        <div class="toolbar">
+          <span class="title">Journal · cells: <span id="cell-count">0</span> · links: <span id="link-count">0</span></span>
+        </div>
+        <div class="events" id="events"></div>
+      </div>
+    </div>
+    <div class="app-form" style="margin-top: 1rem;">
+      <button id="save-local">💾 Save local</button>
+      <button id="save-cloud" class="secondary">☁ Save to cloud</button>
+      <button id="export" class="secondary">↓ Export JSONL</button>
+      <span id="status" style="color: var(--ink-3); font-size: 0.85rem; font-family: var(--mono); margin-left: auto;"></span>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">03</span><span>The law: transitivity</span><span class="rule"></span></h2>
+    <p class="lead">
+      LINKS of the same type are <em>transitive</em>. If Alice
+      is a friend of Bob, and Bob is a friend of Carol, then
+      Alice is a friend of Carol. The transitivity is
+      automatic — you don't have to write the third link.
+      Query the graph with <code>follow(from, rel, hops)</code>
+      and the substrate does the rest.
+    </p>
+    <p class="lead">
+      This is how social networks, dependency graphs, file
+      systems, and even knowledge graphs work. The substrate
+      gives you transitivity for free, because it's a law,
+      not a feature.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="num">04</span><span>What you can build with BIND + LINK</span><span class="rule"></span></h2>
+    <p class="lead">
+      A knowledge graph. A social network. A file system. A
+      database schema. All of these are cells with links. The
+      substrate doesn't know about any of these — it just
+      knows about BIND and LINK, and the rest is up to you.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="num">05</span><span>Next</span><span class="rule"></span></h2>
+    <p class="lead">
+      So far we've only recorded facts. Let's actually do
+      something. <a href="/academy/3/">Lesson 3: EFFECT →</a>
+    </p>
+  </section>
+</main>
+
+<div class="saved-banner" id="banner"></div>
+
+<script src="/assets/js/substrate.js"></script>
+<script src="/assets/js/persist.js"></script>
+<script>
+(function() {
+  const sub = new Substrate();
+  const codeEl = document.getElementById('code');
+  const eventsEl = document.getElementById('events');
+  const cellCount = document.getElementById('cell-count');
+  const linkCount = document.getElementById('link-count');
+  const status = document.getElementById('status');
+
+  function render() {
+    cellCount.textContent = sub.cellCount();
+    linkCount.textContent = sub.linkCount();
+    eventsEl.innerHTML = sub.events.map(ev => {
+      const op = ev.op, id = ev.id || '', val = JSON.stringify(ev.value);
+      return `<div class="event ${op}"><span class="op">${op}</span> <span class="id">${id}</span> ${val}</div>`;
+    }).join('') || '<div style="color: var(--ink-3); font-size: 0.85rem; padding: 0.4rem;">No events yet. Click Run.</div>';
+    eventsEl.scrollTop = eventsEl.scrollHeight;
+  }
+
+  document.getElementById('run').onclick = () => {
+    sub.events = []; sub.cells.clear(); sub.links.clear(); sub.t = 0;
+    try { new Function('sub', codeEl.value)(sub); }
+    catch (e) { status.textContent = 'Error: ' + e.message; status.style.color = 'var(--red)'; return; }
+    status.textContent = `Ran ${sub.events.length} events`; status.style.color = 'var(--ink-3)';
+    render();
+  };
+  document.getElementById('reset').onclick = () => { sub.events = []; sub.cells.clear(); sub.links.clear(); sub.t = 0; render(); };
+
+  function banner(m) {
+    const b = document.getElementById('banner');
+    b.textContent = m; b.classList.add('show');
+    setTimeout(() => b.classList.remove('show'), 3000);
+  }
+  document.getElementById('save-local').onclick = () => { QuiltPersist.saveLocal(sub); banner('✓ Saved to localStorage'); };
+  document.getElementById('save-cloud').onclick = async () => {
+    try { const e = await QuiltPersist.saveCloud(sub, 'Lesson 2 - LINK'); banner('✓ Saved to cloud: ' + e.id); }
+    catch { banner('✗ Cloud save failed (Worker not configured). Local save still works.'); }
+  };
+  document.getElementById('export').onclick = async () => {
+    const text = await QuiltPersist.exportSaddleBridge(sub);
+    const blob = new Blob([text], { type: 'application/jsonl' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = `quilt-lesson-2-${Date.now()}.jsonl`; a.click();
+    URL.revokeObjectURL(url);
+    banner('✓ Downloaded');
+  };
+  render();
+})();
+</script>
+
+</body>
+</html>

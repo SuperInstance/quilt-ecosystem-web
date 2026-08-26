@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Lesson 7 · BUILD · Quilt Academy</title>
+<link rel="stylesheet" href="/assets/css/quilt.css" />
+</head>
+<body>
+
+<header class="quilt">
+  <div class="row">
+    <a class="brand" href="/">Quilt<span class="dot">·</span></a>
+    <nav>
+      <a href="/academy/" class="active">Academy</a>
+      <a href="/repl/">REPL</a>
+      <a href="/playground/">Playground</a>
+      <a href="/apps/">Apps</a>
+      <a href="/boundaries/">Boundaries</a>
+      <a href="/vms/">VMs</a>
+      <a href="/canon/">Canon</a>
+      <a href="/self-host/">Self-host</a>
+    </nav>
+    <div class="right">Lesson 7 of 7</div>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <h1><span style="color:var(--amber)">BUILD</span> — a counter with persistence</h1>
+    <p class="lede">Combine all 5 opcodes to make a working counter. Save it to the cloud. Take it offline. Come back. The state is yours.</p>
+  </section>
+
+  <section>
+    <h2><span class="num">01</span><span>The shape</span><span class="rule"></span></h2>
+    <p class="lead">Combine all 5 opcodes to make a working counter. Save it to the cloud. Take it offline. Come back. The state is yours.</p>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span><span>Try it</span><span class="rule"></span></h2>
+    <div class="repl-grid">
+      <div class="editor">
+        <div class="toolbar">
+          <span class="file">lesson-7.js</span>
+          <button class="secondary" id="run">▶ Run</button>
+          <button class="ghost" id="reset">↻ Reset</button>
+        </div>
+        <textarea id="code" spellcheck="false">// Lesson 7: Your first app
+// A counter that persists across page reloads.
+
+const sub = new Substrate();
+
+// Init from saved state
+const saved = localStorage.getItem('counter-app');
+if (saved) {
+  sub.fromJSONL(saved);
+}
+
+// A counter cell
+if (!sub.has('count')) {
+  sub.bind('count', 0);
+}
+
+// EFFECT: increment
+function inc() {
+  sub.effect('count', (n) => (n || 0) + 1);
+  sub.tick();
+  save();
+}
+
+// EFFECT: decrement
+function dec() {
+  sub.effect('count', (n) => (n || 0) - 1);
+  sub.tick();
+  save();
+}
+
+// EFFECT: reset
+function reset() {
+  sub.effect('count', () => 0);
+  sub.tick();
+  save();
+}
+
+// VIEW: read the current count
+function getCount() {
+  return sub.view('count') || 0;
+}
+
+// Persist
+function save() {
+  localStorage.setItem('counter-app', sub.toJSONL());
+}
+
+// Wire to the UI
+document.getElementById('inc').onclick = inc;
+document.getElementById('dec').onclick = dec;
+document.getElementById('reset').onclick = reset;
+
+function render() {
+  document.getElementById('count').textContent = getCount();
+}
+render();
+
+// Re-render on every event
+sub.on('count', render);
+sub.on('count', () => sub.tick(0.01));</textarea>
+      </div>
+      <div class="journal">
+        <div class="toolbar">
+          <span class="title">Journal · cells: <span id="cell-count">0</span></span>
+        </div>
+        <div class="events" id="events"></div>
+      </div>
+    </div>
+    <div class="app-form" style="margin-top: 1rem;">
+      <button id="save-local">💾 Save local</button>
+      <button id="save-cloud" class="secondary">☁ Save to cloud</button>
+      <button id="export" class="secondary">↓ Export JSONL</button>
+      <span id="status" style="color: var(--ink-3); font-size: 0.85rem; font-family: var(--mono); margin-left: auto;"></span>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">03</span><span>What you've built</span><span class="rule"></span></h2>
+    <p class="lead">A working counter. It uses all 5 opcodes:<br><br>• <code>BIND</code> to create the count cell<br>• <code>EFFECT</code> for increment, decrement, reset<br>• <code>VIEW</code> to read the current value<br>• <code>TICK</code> to advance time on each change<br>• <code>LINK</code> would be used to chain counters together (try it!)<br><br>It saves to localStorage, so it survives a page reload. Click <strong>Save to cloud</strong> below to put it in Cloudflare KV and get a share URL.</p>
+  </section>
+
+  <section>
+    <h2><span class="num">04</span><span>What you can build</span><span class="rule"></span></h2>
+    <p class="lead">A counter. It seems small, but it's the seed of every reactive UI, every versioned config, every CRDT, every game state. The substrate doesn't know about counters. It knows about 5 opcodes. You composed them into a counter. The composition is yours.</p>
+  </section>
+
+  <section>
+    <h2><span class="num">05</span><span>Next</span><span class="rule"></span></h2>
+    <p class="lead">You finished the Academy. <a href="/repl/">Try the full REPL →</a> · <a href="/apps/">See the 5 apps →</a> · <a href="/playground/">Visual playground →</a></p>
+  </section>
+</main>
+
+<div class="saved-banner" id="banner"></div>
+
+<script src="/assets/js/substrate.js"></script>
+<script src="/assets/js/persist.js"></script>
+<script>
+(function() {
+  const sub = new Substrate();
+  const codeEl = document.getElementById('code');
+  const eventsEl = document.getElementById('events');
+  const cellCount = document.getElementById('cell-count');
+  const status = document.getElementById('status');
+
+  function render() {
+    cellCount.textContent = sub.cellCount();
+    eventsEl.innerHTML = sub.events.map(ev => {
+      const op = ev.op, id = ev.id || '', val = JSON.stringify(ev.value);
+      return `<div class="event ${op}"><span class="op">${op}</span> <span class="id">${id}</span> ${val}</div>`;
+    }).join('') || '<div style="color: var(--ink-3); font-size: 0.85rem; padding: 0.4rem;">No events yet. Click Run.</div>';
+    eventsEl.scrollTop = eventsEl.scrollHeight;
+  }
+
+  document.getElementById('run').onclick = () => {
+    sub.events = []; sub.cells.clear(); sub.links.clear(); sub.t = 0;
+    try { new Function('sub', codeEl.value)(sub); }
+    catch (e) { status.textContent = 'Error: ' + e.message; status.style.color = 'var(--red)'; return; }
+    status.textContent = `Ran ${sub.events.length} events`; status.style.color = 'var(--ink-3)';
+    render();
+  };
+  document.getElementById('reset').onclick = () => { sub.events = []; sub.cells.clear(); sub.links.clear(); sub.t = 0; render(); };
+
+  function banner(m) {
+    const b = document.getElementById('banner');
+    b.textContent = m; b.classList.add('show');
+    setTimeout(() => b.classList.remove('show'), 3000);
+  }
+  document.getElementById('save-local').onclick = () => { QuiltPersist.saveLocal(sub); banner('✓ Saved to localStorage'); };
+  document.getElementById('save-cloud').onclick = async () => {
+    try { const e = await QuiltPersist.saveCloud(sub, 'Lesson 7 - BUILD'); banner('✓ Saved to cloud: ' + e.id); }
+    catch { banner('✗ Cloud save failed (Worker not configured). Local save still works.'); }
+  };
+  document.getElementById('export').onclick = async () => {
+    const text = await QuiltPersist.exportSaddleBridge(sub);
+    const blob = new Blob([text], { type: 'application/jsonl' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = `quilt-lesson-7-${Date.now()}.jsonl`; a.click();
+    URL.revokeObjectURL(url);
+    banner('✓ Downloaded');
+  };
+  render();
+})();
+</script>
+
+</body>
+</html>

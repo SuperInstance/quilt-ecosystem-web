@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>REPL · Quilt</title>
+<link rel="stylesheet" href="/assets/css/quilt.css" />
+</head>
+<body>
+
+<header class="quilt">
+  <div class="row">
+    <a class="brand" href="/">Quilt<span class="dot">·</span></a>
+    <nav>
+      <a href="/academy/">Academy</a>
+      <a href="/repl/" class="active">REPL</a>
+      <a href="/playground/">Playground</a>
+      <a href="/apps/">Apps</a>
+      <a href="/boundaries/">Boundaries</a>
+      <a href="/vms/">VMs</a>
+      <a href="/canon/">Canon</a>
+      <a href="/self-host/">Self-host</a>
+    </nav>
+    <div class="right">browser REPL · JS substrate</div>
+  </div>
+</header>
+
+<main class="wide">
+  <section class="hero">
+    <h1>The browser <span style="color:var(--amber)">REPL</span></h1>
+    <p class="lede">
+      Type polyformalism code on the left. See the journal on
+      the right. Use the time-travel slider to scrub through
+      the history. Save your work, take it offline, come back.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="num">01</span><span>The REPL</span><span class="rule"></span></h2>
+    <div class="repl-grid" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
+      <div class="editor">
+        <div class="toolbar">
+          <span class="file">main.js</span>
+          <button class="secondary" id="run">▶ Run</button>
+          <button class="ghost" id="reset">↻ Reset</button>
+          <select id="example" style="background: var(--bg-3); color: var(--ink); border: 1px solid var(--line); padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.78rem;">
+            <option value="">Examples…</option>
+            <option value="hello">Hello, world</option>
+            <option value="counter">Counter with listener</option>
+            <option value="graph">Social graph</option>
+            <option value="time">Time-travel demo</option>
+            <option value="laws">5-laws verifier</option>
+          </select>
+        </div>
+        <textarea id="code" spellcheck="false">// Browser REPL — same 5 opcodes as the C99 substrate
+// Use the dropdown to load examples. Press Ctrl+Enter to run.
+
+sub.bind('hello', 'world');
+sub.bind('answer', 42);
+sub.view('hello');</textarea>
+      </div>
+      <div class="journal">
+        <div class="toolbar">
+          <span class="title">Journal · cells: <span id="cell-count">0</span> · links: <span id="link-count">0</span></span>
+          <button class="ghost" id="clear">Clear</button>
+        </div>
+        <div class="events" id="events"></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span><span>Time travel</span><span class="rule"></span></h2>
+    <p class="lead">
+      The slider scrubs through the journal. The cells on the
+      right reflect the state at the slider's position. Drag
+      to roll back, release to jump forward.
+    </p>
+    <div class="app-form">
+      <span style="color: var(--ink-3); font-size: 0.85rem; font-family: var(--mono);">Scrub to event:</span>
+      <input type="range" id="scrub" min="0" max="0" value="0" style="flex: 1;" />
+      <span id="scrub-pos" style="color: var(--ink-3); font-size: 0.85rem; font-family: var(--mono);">0 / 0</span>
+    </div>
+    <div class="app-output" id="scrub-state" style="margin-top: 0.6rem;">Run some code to enable time travel.</div>
+  </section>
+
+  <section>
+    <h2><span class="num">03</span><span>Prover — verify the 5 laws</span><span class="rule"></span></h2>
+    <p class="lead">
+      Click <strong>Prove</strong> to check that your journal
+      obeys the 5 algebraic laws. The prover is the same one
+      in <code>quilt-substrate-meta/src/prove.c</code>.
+    </p>
+    <div class="app-form">
+      <button id="prove">⚖ Prove</button>
+      <span id="proof-result" style="color: var(--ink-3); font-size: 0.85rem; font-family: var(--mono); margin-left: 1rem;"></span>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">04</span><span>Save / load</span><span class="rule"></span></h2>
+    <p class="lead">
+      The state is yours. Save it to localStorage, to
+      Cloudflare KV (shareable URL), or export to a
+      saddle-bridge JSONL you can replay on a local instance.
+    </p>
+    <div class="app-form">
+      <button id="save-local">💾 Save local</button>
+      <button id="save-cloud" class="secondary">☁ Save to cloud</button>
+      <button id="load-cloud" class="secondary">↻ Load from cloud</button>
+      <button id="export" class="secondary">↓ Export JSONL</button>
+      <button id="import" class="ghost">↑ Import JSONL</button>
+      <span id="status" style="color: var(--ink-3); font-size: 0.85rem; font-family: var(--mono); margin-left: auto;"></span>
+    </div>
+  </section>
+</main>
+
+<div class="saved-banner" id="banner"></div>
+
+<script src="/assets/js/substrate.js"></script>
+<script src="/assets/js/persist.js"></script>
+<script>
+(function() {
+  const sub = new Substrate();
+  const codeEl = document.getElementById('code');
+  const eventsEl = document.getElementById('events');
+  const cellCountEl = document.getElementById('cell-count');
+  const linkCountEl = document.getElementById('link-count');
+  const scrub = document.getElementById('scrub');
+  const scrubPos = document.getElementById('scrub-pos');
+  const scrubState = document.getElementById('scrub-state');
+  const status = document.getElementById('status');
+
+  const EXAMPLES = {
+    hello: `// Hello, world
+sub.bind('greeting', 'hello, world');
+sub.bind('pi', 3.14159);
+sub.bind('cowboy', 'Casey');
+sub.view('cowboy');`,
+    counter: `// Counter with a listener
+sub.bind('count', 0);
+sub.on('count', (cell) => {
+  document.getElementById('repl-output').textContent = 'count = ' + cell.value;
+});
+sub.effect('count', (n) => (n || 0) + 1);
+sub.effect('count', (n) => (n || 0) + 1);
+sub.effect('count', (n) => (n || 0) + 1);
+sub.tick();`,
+    graph: `// Social graph with transitive friends
+sub.link('alice', 'bob',   'friend');
+sub.link('bob',   'carol', 'friend');
+sub.link('alice', 'dave',  'friend');
+sub.link('carol', 'eve',   'friend');
+// alice→carol, alice→eve are implied by transitivity`,
+    time: `// Time-travel demo
+sub.bind('a', 1);
+sub.tick(0.1);
+sub.bind('a', 2);
+sub.tick(0.1);
+sub.bind('a', 3);
+sub.tick(0.1);
+sub.bind('a', 4);
+sub.tick(0.1);
+// Now scrub the slider above to roll back`,
+    laws: `// 5-laws verifier
+sub.bind('x', 1);
+sub.bind('x', 1);  // idempotent
+sub.bind('x', 2);  // different value
+sub.link('a', 'b', 'edge');
+sub.tick();
+// Click "Prove" below`,
+  };
+
+  function render(upTo) {
+    upTo = upTo || sub.events.length;
+    cellCountEl.textContent = sub.cellCount();
+    linkCountEl.textContent = sub.linkCount();
+    eventsEl.innerHTML = sub.events.slice(0, upTo).map((ev, i) => {
+      const op = ev.op, id = ev.id || '', val = JSON.stringify(ev.value);
+      return `<div class="event ${op}"><span class="t">#${i}</span><span class="op">${op}</span> <span class="id">${id}</span> ${val}</div>`;
+    }).join('') || '<div style="color: var(--ink-3); font-size: 0.85rem; padding: 0.4rem;">No events yet. Click Run.</div>';
+    eventsEl.scrollTop = eventsEl.scrollHeight;
+  }
+
+  function run() {
+    sub.events = []; sub.cells.clear(); sub.links.clear(); sub.t = 0;
+    try { new Function('sub', codeEl.value)(sub); }
+    catch (e) { status.textContent = 'Error: ' + e.message; status.style.color = 'var(--red)'; return; }
+    status.textContent = `Ran ${sub.events.length} events`; status.style.color = 'var(--ink-3)';
+    scrub.max = sub.events.length;
+    scrub.value = sub.events.length;
+    scrubPos.textContent = `${sub.events.length} / ${sub.events.length}`;
+    scrubState.textContent = JSON.stringify(snapshotState(), null, 2);
+    render();
+  }
+
+  function snapshotState() {
+    const out = {};
+    for (const [name, cell] of sub.cells) out[name] = cell.value;
+    return out;
+  }
+
+  document.getElementById('run').onclick = run;
+  document.getElementById('reset').onclick = () => { sub.events = []; sub.cells.clear(); sub.links.clear(); sub.t = 0; render(); };
+  document.getElementById('clear').onclick = () => { eventsEl.innerHTML = ''; };
+  document.getElementById('example').onchange = (e) => {
+    if (EXAMPLES[e.target.value]) { codeEl.value = EXAMPLES[e.target.value]; run(); }
+    e.target.value = '';
+  };
+
+  scrub.oninput = () => {
+    const pos = parseInt(scrub.value);
+    scrubPos.textContent = `${pos} / ${sub.events.length}`;
+    // Replay up to pos
+    const fresh = new Substrate();
+    for (let i = 0; i < pos; i++) {
+      const ev = sub.events[i];
+      if (ev.op === 'BIND') fresh.bind(ev.id, ev.value);
+      else if (ev.op === 'LINK') { const [a, b] = ev.id.split('→'); fresh.link(a, b, ev.value); }
+      else if (ev.op === 'TICK') fresh.tick(ev.value);
+    }
+    scrubState.textContent = JSON.stringify((() => {
+      const o = {}; for (const [n, c] of fresh.cells) o[n] = c.value; return o;
+    })(), null, 2);
+    render(pos);
+  };
+
+  document.getElementById('prove').onclick = () => {
+    const proof = sub.prove();
+    const r = document.getElementById('proof-result');
+    r.innerHTML = proof.ok
+      ? '<span class="pill green">✓ All 5 laws hold</span>'
+      : '<span class="pill red">✗ Some laws violated</span>  ' + JSON.stringify(proof.laws);
+  };
+
+  function banner(m) { const b = document.getElementById('banner'); b.textContent = m; b.classList.add('show'); setTimeout(() => b.classList.remove('show'), 3000); }
+  document.getElementById('save-local').onclick = () => { QuiltPersist.saveLocal(sub); banner('✓ Saved'); };
+  document.getElementById('save-cloud').onclick = async () => {
+    try { const e = await QuiltPersist.saveCloud(sub, 'repl'); banner('☁ Saved: ' + e.id); }
+    catch { banner('✗ Cloud save failed (Worker not configured). Local save still works.'); }
+  };
+  document.getElementById('load-cloud').onclick = async () => {
+    const id = prompt('Paste a cloud save ID or URL:');
+    if (!id) return;
+    try {
+      const cleaned = id.replace(/^https?:\/\/[^/]+\//, '').replace(/^.*state\//, '');
+      const data = await QuiltPersist.loadCloud(cleaned);
+      sub.fromJSONL(data.jsonl);
+      render();
+      banner('↻ Loaded');
+    } catch (e) { banner('✗ Load failed: ' + e.message); }
+  };
+  document.getElementById('export').onclick = async () => {
+    const text = await QuiltPersist.exportSaddleBridge(sub);
+    const blob = new Blob([text], { type: 'application/jsonl' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `repl-${Date.now()}.jsonl`; a.click();
+    banner('↓ Exported');
+  };
+  document.getElementById('import').onclick = () => {
+    const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.jsonl';
+    inp.onchange = async (e) => {
+      const text = await e.target.files[0].text();
+      sub.fromJSONL(text);
+      render();
+      banner('↑ Imported');
+    };
+    inp.click();
+  };
+
+  // Tab key in textarea = 2 spaces
+  codeEl.onkeydown = (e) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const s = codeEl.selectionStart, ev = codeEl.selectionEnd;
+      codeEl.value = codeEl.value.substring(0, s) + '  ' + codeEl.value.substring(ev);
+      codeEl.selectionStart = codeEl.selectionEnd = s + 2;
+    }
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); run(); }
+  };
+
+  render();
+})();
+</script>
+
+</body>
+</html>

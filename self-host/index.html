@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Self-host · Run your own Quilt</title>
+<link rel="stylesheet" href="/assets/css/quilt.css" />
+</head>
+<body>
+
+<header class="quilt">
+  <div class="row">
+    <a class="brand" href="/">Quilt<span class="dot">·</span></a>
+    <nav>
+      <a href="/academy/">Academy</a>
+      <a href="/repl/">REPL</a>
+      <a href="/playground/">Playground</a>
+      <a href="/apps/">Apps</a>
+      <a href="/boundaries/">Boundaries</a>
+      <a href="/vms/">VMs</a>
+      <a href="/canon/">Canon</a>
+      <a href="/self-host/" class="active">Self-host</a>
+    </nav>
+    <div class="right">3 paths</div>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <h1>Self-host · <span style="color:var(--amber)">the watch is yours</span></h1>
+    <p class="lede">
+      The Quilt is yours if you want it. Three paths, from
+      "play with it on my laptop" to "deploy the whole
+      ecosystem to my own domain." Pick what you can carry.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="num">01</span><span>Which path is right for you?</span><span class="rule"></span></h2>
+    <table>
+      <thead>
+        <tr><th>Path</th><th>Time</th><th>What you get</th><th>What you need</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><a href="#path-1">Local Python</a></td>
+          <td>5 min</td>
+          <td>Run the substrate on your laptop. Run the tests. Modify the apps. No network.</td>
+          <td>Python 3.10+, git</td>
+        </tr>
+        <tr>
+          <td><a href="#path-2">Cloudflare Worker</a></td>
+          <td>15 min</td>
+          <td>Deploy the LLM proxy to your own Cloudflare account. Get a free rate-limited LLM endpoint.</td>
+          <td>Cloudflare account, wrangler</td>
+        </tr>
+        <tr>
+          <td><a href="#path-3">Full Stack</a></td>
+          <td>1 day</td>
+          <td>Clone the whole ecosystem. Deploy to your own domain. Vectorize your own canon. Save state in your own KV.</td>
+          <td>Cloudflare account, GitHub, ~1 hour of reading</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="path-1">
+    <h2><span class="num">02</span><span>Path 1: Local Python</span><span class="rule"></span></h2>
+    <p class="lead">
+      Run the original Python substrate. 405 tests. 5 apps.
+      Modify anything you want.
+    </p>
+<pre><code>git clone https://github.com/SuperInstance/quilt-substrate.git
+cd quilt-substrate
+python3 -m venv .venv &amp;&amp; source .venv/bin/activate
+pip install -e .
+python3 -m pytest tests/ -q
+<span class="com"># 405 passed in 0.42s</span>
+
+<span class="com"># Try the REPL</span>
+python3 apps/repl.py
+&gt; sub.bind(<span class="str">'hello'</span>, <span class="str">'world'</span>)
+&gt; sub.view(<span class="str">'hello'</span>)
+<span class="str">'world'</span></code></pre>
+    <p class="lead">
+      Now try the C99 version (the self-evolving meta substrate):
+    </p>
+<pre><code>git clone https://github.com/SuperInstance/quilt-substrate-meta.git
+cd quilt-substrate-meta
+make &amp;&amp; make test
+<span class="com"># 36 tests, all passing</span>
+
+<span class="com"># Try the REPL</span>
+make repl
+&gt; bind greeting <span class="str">"hello, world"</span>
+&gt; view greeting
+hello, world
+&gt; journal
+BIND greeting=<span class="str">"hello, world"</span> t=0</code></pre>
+  </section>
+
+  <section id="path-2">
+    <h2><span class="num">03</span><span>Path 2: Cloudflare Worker</span><span class="rule"></span></h2>
+    <p class="lead">
+      Deploy the LLM proxy. Get a free rate-limited endpoint.
+      Use it from any of the web pages here (just point the
+      base URL to your worker).
+    </p>
+<pre><code>git clone https://github.com/SuperInstance/quilt-llm-worker.git
+cd quilt-llm-worker
+npm install
+npx wrangler login
+npx wrangler kv:namespace create <span class="str">"RATE_LIMIT"</span>
+<span class="com"># copy the namespace ID into wrangler.toml</span>
+npx wrangler secret put ZAI_API_KEY   <span class="com"># paste your key</span>
+npx wrangler secret put DEEPSEEK_API_KEY
+npx wrangler deploy
+<span class="com"># https://quilt-llm-worker.YOUR-SUBDOMAIN.workers.dev</span></code></pre>
+    <p class="lead">
+      Now your web pages can call <code>your-worker/v1/chat/completions</code>
+      instead of the public one. Set
+      <code>window.QUILT_LLM_BASE = 'https://your-worker.workers.dev'</code>
+      in your browser console and refresh.
+    </p>
+  </section>
+
+  <section id="path-3">
+    <h2><span class="num">04</span><span>Path 3: Full Stack</span><span class="rule"></span></h2>
+    <p class="lead">
+      Clone the whole ecosystem. Deploy to your own domain.
+      Vectorize your own canon. Save state in your own KV.
+    </p>
+<pre><code><span class="com"># 1. Clone the 24 repos</span>
+git clone https://github.com/SuperInstance/quilt-foundation.git
+git clone https://github.com/SuperInstance/quilt-substrate-meta.git
+git clone https://github.com/SuperInstance/quilt-ecosystem-web.git
+<span class="com"># ... and 21 more</span>
+
+<span class="com"># 2. Deploy the web ecosystem to Cloudflare Pages</span>
+cd quilt-ecosystem-web
+npx wrangler pages deploy . --project-name=quilt
+<span class="com"># https://quilt.pages.dev</span>
+
+<span class="com"># 3. Set up the workers</span>
+npx wrangler kv:namespace create <span class="str">"STATE"</span>
+npx wrangler vectorize create quilt-canon --dimensions=768
+npx wrangler r2 bucket create quilt-canon
+npx wrangler d1 create quilt-gallery
+npx wrangler d1 execute quilt-gallery --file=./schema.sql
+
+<span class="com"># 4. Index the canon (200+ papers)</span>
+python3 scripts/index_canon.py --vectorize=quilt-canon
+<span class="com"># 1046 chunks, ~5 minutes</span>
+
+<span class="com"># 5. Add your custom domain</span>
+npx wrangler pages domains add quilt.your-domain.com</code></pre>
+    <p class="lead">
+      Now you have a Quilt ecosystem on your own domain. The
+      web pages, the workers, the KV, the Vectorize index,
+      the R2 bucket, the D1 database — all yours. The
+      cowboy's maxim extends: <em>the watch is whoever is
+      holding it.</em>
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="num">05</span><span>What you keep</span><span class="rule"></span></h2>
+    <p class="lead">
+      All of it. The MIT license is at the root of every
+      repo. The substrate is a contract; the implementations
+      are interchangeable. The canon is yours to fork,
+      extend, re-publish.
+    </p>
+    <p class="lead">
+      The collection is one idea, expressed in 24 doors. The
+      doors are open. The cowboy's last ride is the ride
+      you take.
+    </p>
+  </section>
+</main>
+
+<footer class="quilt">
+  <div class="row">
+    <div class="col">
+      <h4>Documentation</h4>
+      <ul>
+        <li><a href="/academy/">Quilt Academy</a> · 7 lessons</li>
+        <li><a href="/boundaries/">Laminar Boundaries</a> · 15 boundaries</li>
+        <li><a href="https://github.com/SuperInstance/AI-Writings/blob/master/seed-canon/COLLECTION.md">COLLECTION.md</a> · the map</li>
+      </ul>
+    </div>
+    <div class="col">
+      <h4>Reputation</h4>
+      <ul>
+        <li><a href="https://github.com/SuperInstance">github.com/SuperInstance</a> · 24 repos</li>
+        <li><a href="https://github.com/SuperInstance/AI-Writings">AI-Writings</a> · 178 papers</li>
+      </ul>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

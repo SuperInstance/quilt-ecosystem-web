@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Lesson 1 · BIND · Quilt Academy</title>
+<link rel="stylesheet" href="/assets/css/quilt.css" />
+</head>
+<body>
+
+<header class="quilt">
+  <div class="row">
+    <a class="brand" href="/">Quilt<span class="dot">·</span></a>
+    <nav>
+      <a href="/academy/" class="active">Academy</a>
+      <a href="/repl/">REPL</a>
+      <a href="/playground/">Playground</a>
+      <a href="/apps/">Apps</a>
+      <a href="/boundaries/">Boundaries</a>
+      <a href="/vms/">VMs</a>
+      <a href="/canon/">Canon</a>
+      <a href="/self-host/">Self-host</a>
+    </nav>
+    <div class="right">Lesson 1 of 7</div>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <h1><span style="color:var(--amber)">BIND</span> — give a name to a value</h1>
+    <p class="lede">
+      BIND is the simplest opcode. It says: <em>this name
+      refers to this value</em>. Like writing a variable in a
+      programming language, except the binding is recorded in a
+      journal so you can replay it, time-travel through it, and
+      roll it back.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="num">01</span><span>The shape of BIND</span><span class="rule"></span></h2>
+    <p class="lead">
+      BIND takes two arguments: a name and a value. The name
+      becomes a <em>cell</em>. The cell holds the value. The
+      journal records the binding with a timestamp.
+    </p>
+<pre><code>substrate.bind(<span class="str">"greeting"</span>, <span class="str">"hello, world"</span>);
+// journal: [
+//   { op: <span class="str">"BIND"</span>, id: <span class="str">"greeting"</span>, value: <span class="str">"hello, world"</span>, t: 0 }
+// ]</code></pre>
+    <p class="lead">
+      Try it below. Type your own BINDs in the editor on the
+      left. The journal on the right shows what happened.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span><span>Try it</span><span class="rule"></span></h2>
+    <div class="repl-grid">
+      <div class="editor">
+        <div class="toolbar">
+          <span class="file">lesson-1.js</span>
+          <button class="secondary" id="run">▶ Run</button>
+          <button class="ghost" id="reset">↻ Reset</button>
+        </div>
+        <textarea id="code" spellcheck="false">// Lesson 1: BIND
+// Each line gives a name to a value.
+// Try changing the values and clicking Run.
+
+sub.bind('greeting', 'hello, world');
+sub.bind('pi', 3.14159);
+sub.bind('answer', 42);
+sub.bind('cowboy', 'Casey');
+
+// Now view them. VIEW does not modify the journal.
+sub.view('greeting');
+sub.view('pi');
+sub.view('cowboy');</textarea>
+      </div>
+      <div class="journal">
+        <div class="toolbar">
+          <span class="title">Journal · cells: <span id="cell-count">0</span></span>
+          <button class="ghost" id="clear">Clear</button>
+        </div>
+        <div class="events" id="events"></div>
+      </div>
+    </div>
+    <div class="app-form" style="margin-top: 1rem;">
+      <button id="save-local">💾 Save local</button>
+      <button id="save-cloud" class="secondary">☁ Save to cloud</button>
+      <button id="export" class="secondary">↓ Export JSONL</button>
+      <span id="status" style="color: var(--ink-3); font-size: 0.85rem; font-family: var(--mono); margin-left: auto;"></span>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">03</span><span>The law: idempotence</span><span class="rule"></span></h2>
+    <p class="lead">
+      BIND is <em>idempotent</em>. If you bind the same name to
+      the same value twice, only one event is recorded. This is
+      not an optimization — it's a law. It means the journal is
+      a set of facts, not a sequence of changes. Replaying the
+      same journal produces the same state, every time.
+    </p>
+<pre><code>sub.bind(<span class="str">"x"</span>, <span class="str">"hello"</span>);  // event 1
+sub.bind(<span class="str">"x"</span>, <span class="str">"hello"</span>);  // no event (idempotent)
+sub.bind(<span class="str">"x"</span>, <span class="str">"world"</span>);  // event 2 (different value)
+</code></pre>
+    <p class="lead">
+      Why does this matter? Because it means your code is
+      safe to retry. If a network call fails partway through
+      and you re-run the same BINDs, the state doesn't get
+      corrupted. The journal stays clean.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="num">04</span><span>What you can build with just BIND</span><span class="rule"></span></h2>
+    <p class="lead">
+      A key-value store. That's it. BIND is enough. Every other
+      feature — pub/sub, version control, time travel, search —
+      is built by combining BIND with the other 4 opcodes.
+    </p>
+    <p class="lead">
+      The <a href="/apps/kv/">/apps/kv</a> page is a working
+      key-value store with a BIND-only backend. It's 30 lines of
+      code. The whole thing.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="num">05</span><span>Next</span><span class="rule"></span></h2>
+    <p class="lead">
+      A name without a relationship is lonely. Let's draw some
+      arrows. <a href="/academy/2/">Lesson 2: LINK →</a>
+    </p>
+  </section>
+</main>
+
+<div class="saved-banner" id="banner"></div>
+
+<script src="/assets/js/substrate.js"></script>
+<script src="/assets/js/persist.js"></script>
+<script>
+(function() {
+  const sub = new Substrate();
+  let saved = false;
+
+  const codeEl = document.getElementById('code');
+  const eventsEl = document.getElementById('events');
+  const cellCount = document.getElementById('cell-count');
+  const status = document.getElementById('status');
+
+  function render() {
+    cellCount.textContent = sub.cellCount();
+    eventsEl.innerHTML = sub.events.map(ev => {
+      const t = (ev.t || 0).toString().padStart(2, ' ');
+      const op = ev.op;
+      const id = ev.id || '';
+      const val = JSON.stringify(ev.value);
+      return `<div class="event ${op}"><span class="t">t=${t}</span><span class="op">${op}</span> <span class="id">${id}</span> ${val}</div>`;
+    }).join('');
+    if (sub.events.length === 0) {
+      eventsEl.innerHTML = '<div style="color: var(--ink-3); font-size: 0.85rem; padding: 0.4rem;">No events yet. Click Run.</div>';
+    }
+    eventsEl.scrollTop = eventsEl.scrollHeight;
+  }
+
+  function run() {
+    sub.events = [];
+    sub.cells.clear();
+    sub.links.clear();
+    sub.t = 0;
+    try {
+      // user code, with sub bound to the substrate
+      // eslint-disable-next-line no-new-func
+      new Function('sub', codeEl.value)(sub);
+    } catch (e) {
+      status.textContent = 'Error: ' + e.message;
+      status.style.color = 'var(--red)';
+      return;
+    }
+    status.textContent = `Ran ${sub.events.length} events`;
+    status.style.color = 'var(--ink-3)';
+    render();
+  }
+
+  document.getElementById('run').onclick = run;
+  document.getElementById('reset').onclick = () => {
+    sub.events = [];
+    sub.cells.clear();
+    sub.links.clear();
+    sub.t = 0;
+    render();
+  };
+  document.getElementById('clear').onclick = () => { sub.events = []; render(); };
+
+  function showBanner(msg) {
+    const b = document.getElementById('banner');
+    b.textContent = msg;
+    b.classList.add('show');
+    setTimeout(() => b.classList.remove('show'), 3000);
+  }
+
+  document.getElementById('save-local').onclick = () => {
+    const entry = QuiltPersist.saveLocal(sub);
+    status.textContent = 'Saved local: ' + entry.id;
+    showBanner('✓ Saved to localStorage');
+  };
+  document.getElementById('save-cloud').onclick = async () => {
+    try {
+      const entry = await QuiltPersist.saveCloud(sub, 'Lesson 1 - BIND');
+      status.textContent = 'Cloud: ' + entry.url;
+      showBanner('✓ Saved to cloud: ' + entry.id);
+    } catch (e) {
+      showBanner('✗ Cloud save failed (Worker not configured). Local save still works.');
+    }
+  };
+  document.getElementById('export').onclick = async () => {
+    const text = await QuiltPersist.exportSaddleBridge(sub);
+    const blob = new Blob([text], { type: 'application/jsonl' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `quilt-lesson-1-${Date.now()}.jsonl`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showBanner('✓ Downloaded saddle-bridge JSONL');
+  };
+
+  render();
+})();
+</script>
+
+</body>
+</html>

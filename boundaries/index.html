@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Laminar Boundaries · Quilt</title>
+<link rel="stylesheet" href="/assets/css/quilt.css" />
+</head>
+<body>
+
+<header class="quilt">
+  <div class="row">
+    <a class="brand" href="/">Quilt<span class="dot">·</span></a>
+    <nav>
+      <a href="/academy/">Academy</a>
+      <a href="/repl/">REPL</a>
+      <a href="/playground/">Playground</a>
+      <a href="/apps/">Apps</a>
+      <a href="/boundaries/" class="active">Boundaries</a>
+      <a href="/vms/">VMs</a>
+      <a href="/canon/">Canon</a>
+      <a href="/self-host/">Self-host</a>
+    </nav>
+    <div class="right">15 boundaries</div>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <h1>Laminar <span style="color:var(--amber)">Boundaries</span></h1>
+    <p class="lede">
+      Fifteen places where the substrate alone isn't enough.
+      Each boundary has a bridge — an existing Quilt repo, or
+      a roadmap item, or a code pattern you can use today.
+      The boundaries are <em>found</em>, not designed. Like
+      carving hauls on a boat hull to find the waterline.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="num">01</span><span>Filter</span><span class="rule"></span></h2>
+    <div class="app-form">
+      <input type="text" id="filter" placeholder="filter by keyword (e.g. cache, raft, esp32)" style="width: 400px;" />
+      <select id="status">
+        <option value="all">all bridges</option>
+        <option value="existing">existing repos</option>
+        <option value="roadmap">roadmap items</option>
+      </select>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span><span>The 15 boundaries</span><span class="rule"></span></h2>
+
+    <article class="boundary" data-keywords="relational query sql join" data-status="roadmap">
+      <h3>1. Relational queries</h3>
+      <p><strong>Limit:</strong> the substrate stores values, not relations — joins across many cells are O(n) and have no index.</p>
+      <p><strong>Bridge:</strong> hand-rolled index cells today; <code>quilt-sql</code> (roadmap, 2 weeks) — a query layer that compiles to substrate BIND/LINK events.</p>
+<pre><code><span class="kw">// Index cells, updated on LINK
+sub.link(<span class="str">'order:42'</span>, <span class="str">'customer:7'</span>, <span class="str">'belongsTo'</span>);
+sub.bind(<span class="str">'idx:customer:7'</span>, [
+  ...(sub.view(<span class="str">'idx:customer:7'</span>) || []), <span class="str">'order:42'</span>
+]);</code></pre>
+    </article>
+
+    <article class="boundary" data-keywords="durable delivery ack crash recovery" data-status="existing">
+      <h3>2. Durable message delivery</h3>
+      <p><strong>Limit:</strong> the substrate's journal is in memory — a crash loses anything not yet persisted.</p>
+      <p><strong>Bridge:</strong> <a href="https://github.com/SuperInstance/quilt-saddle-bridge">quilt-saddle-bridge</a> (now) — hash-chained JSONL to disk; <code>quilt-delivery</code> (Month 2) for at-least-once across the network.</p>
+<pre><code><span class="kw">const</span> bridge = <span class="kw">new</span> <span class="lang">SaddleBridge</span>(<span class="str">'./journal.jsonl'</span>);
+sub.on(<span class="str">'*'</span>, (cell) => bridge.append({
+  op: cell.op, id: cell.name, value: cell.value,
+}));</code></pre>
+    </article>
+
+    <article class="boundary" data-keywords="graph traversal path shortest pagerank" data-status="roadmap">
+      <h3>3. Graph traversal at scale</h3>
+      <p><strong>Limit:</strong> following a chain of LINKS is O(n) per hop; the substrate has no shortest-path primitive.</p>
+      <p><strong>Bridge:</strong> hand-rolled index cells (now); <code>quilt-graph</code> (roadmap, 4 weeks) — BFS/DFS/Pagerank as a substrate effect.</p>
+<pre><code><span class="kw">function</span> bfs(start, rel, maxHops) {
+  <span class="kw">const</span> visited = <span class="kw">new</span> <span class="lang">Set</span>([start]);
+  <span class="kw">for</span> (<span class="kw">let</span> hop = 0; hop &lt; maxHops; hop++) {
+    <span class="kw">for</span> (<span class="kw">const</span> n <span class="kw">of</span> visited) {
+      <span class="kw">for</span> (<span class="kw">const</span> link <span class="kw">of</span> sub.links) {
+        <span class="kw">const</span> [from, to, r] = link.split(<span class="str">'|'</span>);
+        <span class="kw">if</span> (from === n &amp;&amp; r === rel) visited.add(to);
+      }
+    }
+  }
+  <span class="kw">return</span> [...visited];
+}</code></pre>
+    </article>
+
+    <article class="boundary" data-keywords="cache microsecond latency hash" data-status="roadmap">
+      <h3>4. Sub-millisecond cache</h3>
+      <p><strong>Limit:</strong> the substrate's BIND is O(1) but the journal allocation is 200ns+ — too slow for L1/L2 cache workloads.</p>
+      <p><strong>Bridge:</strong> <code>quilt-cache</code> (roadmap, 1 week) — a sharded in-process hash table; writes to the substrate journal are async, the cache reads are sync.</p>
+<pre><code><span class="kw">const</span> cache = <span class="kw">new</span> <span class="lang">QuiltCache</span>({ shards: 64, size: <span class="num">1e7</span> });
+sub.on(<span class="str">'*'</span>, (cell) => cache.set(cell.name, cell.value));
+<span class="kw">const</span> v = cache.get(<span class="str">'hot-key'</span>); <span class="com">// 200ns</span></code></pre>
+    </article>
+
+    <article class="boundary" data-keywords="auth permission capability token oauth" data-status="roadmap">
+      <h3>5. Auth and permissions</h3>
+      <p><strong>Limit:</strong> every cell is readable by default — the substrate has no notion of identity or capability.</p>
+      <p><strong>Bridge:</strong> capability cells + a wrapper (now); <code>quilt-auth</code> (roadmap, Month 1) — identity, scopes, signed capabilities.</p>
+<pre><code><span class="kw">const</span> cap = sub.view(<span class="str">'cap:read:orders'</span>);
+<span class="kw">if</span> (cap &amp;&amp; cap.principal === <span class="str">'alice'</span>) {
+  <span class="kw">return</span> sub.view(<span class="str">'order:42'</span>);
+}</code></pre>
+    </article>
+
+    <article class="boundary" data-keywords="pubsub fanout broadcast 10k million" data-status="roadmap">
+      <h3>6. Real-time pub/sub to 10K</h3>
+      <p><strong>Limit:</strong> the bus walks every cell on every publish — O(n) per publish, capped at a few thousand cells.</p>
+      <p><strong>Bridge:</strong> <a href="https://github.com/SuperInstance/quilt-bus">quilt-bus</a> + topic sharding (now); <code>quilt-multicast</code> (roadmap) — kernel-bypass multicast for 10K+ subscribers.</p>
+<pre><code><span class="kw">// Sharded bus: each topic lives on one shard
+<span class="kw">const</span> shard = <span class="str">'shard-'</span> + hash(topic) % <span class="num">16</span>;
+sub.link(subscriber, <span class="str">`${shard}:${topic}`</span>, <span class="str">'subscribes'</span>);</code></pre>
+    </article>
+
+    <article class="boundary" data-keywords="polyglot persistence postgres redis sqlite rocksdb" data-status="existing">
+      <h3>7. Polyglot persistence</h3>
+      <p><strong>Limit:</strong> the substrate doesn't know about SQL or Redis — only cells in memory.</p>
+      <p><strong>Bridge:</strong> <a href="https://github.com/SuperInstance/quilt-saddle-bridge">quilt-saddle-bridge</a> JSONL to any database (now); <code>quilt-journal-rockdb</code> (roadmap) — RocksDB-backed journal for 1M+ events/sec.</p>
+<pre><code><span class="kw">// saddle-bridge → postgres COPY
+sub.on(<span class="str">'*'</span>, (cell) => {
+  pg.query(<span class="str">'INSERT INTO events (op, id, value, t) VALUES ($1, $2, $3, $4)'</span>,
+    [cell.op, cell.name, cell.value, cell.t]);
+});</code></pre>
+    </article>
+
+    <article class="boundary" data-keywords="search fulltext index lucene elastic" data-status="roadmap">
+      <h3>8. Full-text search over values</h3>
+      <p><strong>Limit:</strong> the substrate can compare values, but it has no inverted index or tokenization.</p>
+      <p><strong>Bridge:</strong> <code>quilt-search</code> (roadmap, 2 weeks) — a B-tree + token index over cell values.</p>
+<pre><code><span class="kw">const</span> index = <span class="kw">new</span> <span class="lang">QuiltSearch</span>(sub);
+sub.on(<span class="str">'*'</span>, (cell) => index.add(cell.name, cell.value));
+<span class="kw">const</span> results = index.query(<span class="str">'casey cowboy'</span>); <span class="com">// ranked</span></code></pre>
+    </article>
+
+    <article class="boundary" data-keywords="crdt collaborative edit conflict" data-status="roadmap">
+      <h3>9. CRDT collaborative editing</h3>
+      <p><strong>Limit:</strong> two writers binding the same cell produce last-write-wins — no merge semantics.</p>
+      <p><strong>Bridge:</strong> <code>quilt-crdt</code> (roadmap, 4 weeks) — lattice-typed cells where BIND becomes a join-semilattice operation.</p>
+<pre><code><span class="com">// A G-counter cell — concurrent increments merge by max</span>
+sub.bind(<span class="str">'views'</span>, <span class="lang">GCounter</span>.empty());
+sub.effect(<span class="str">'views'</span>, (c) =&gt; c.increment(actorId));</code></pre>
+    </article>
+
+    <article class="boundary" data-keywords="llm streaming token chatgpt claude" data-status="existing">
+      <h3>10. AI/LLM streaming</h3>
+      <p><strong>Limit:</strong> the substrate's BIND is atomic — a 30-second LLM response is one cell change, not a stream.</p>
+      <p><strong>Bridge:</strong> <a href="https://github.com/SuperInstance/quilt-casting">quilt-casting</a> async identities (now); <code>quilt-stream</code> (roadmap) — chunked BINDs that fire as tokens arrive.</p>
+<pre><code><span class="kw">const</span> stream = sub.stream(<span class="str">'response'</span>);
+<span class="kw">for</span> <span class="kw">await</span> (<span class="kw">const</span> chunk <span class="kw">of</span> llm.stream(prompt)) {
+  stream.append(chunk);
+}</code></pre>
+    </article>
+
+    <article class="boundary" data-keywords="timeseries metrics cardinality prometheus influxdb" data-status="roadmap">
+      <h3>11. Time-series at high cardinality</h3>
+      <p><strong>Limit:</strong> every TICK+EFFECT pair is a journal entry — 1M metrics × 1Hz = 1B events/day, expensive to replay.</p>
+      <p><strong>Bridge:</strong> <code>quilt-timeseries</code> (roadmap, 3 weeks) — delta-of-delta encoding + downsampling in the journal.</p>
+<pre><code><span class="kw">const</span> ts = sub.timeseries(<span class="str">'cpu.host-7'</span>, { codec: <span class="str">'delta-of-delta'</span> });
+ts.record(<span class="num">0.42</span>, <span class="lang">Date</span>.now());
+<span class="kw">const</span> hourly = ts.downsample(<span class="str">'1h'</span>, <span class="str">'avg'</span>);</code></pre>
+    </article>
+
+    <article class="boundary" data-keywords="raft consensus paxos leader election" data-status="roadmap">
+      <h3>12. Distributed consensus (Raft)</h3>
+      <p><strong>Limit:</strong> the substrate is a single node — no quorum, no leader election, no log replication.</p>
+      <p><strong>Bridge:</strong> manual replication via saddle-bridge (now); <code>quilt-consensus</code> (roadmap) — Raft on top of the journal, with BIND as the replicated state machine.</p>
+<pre><code><span class="kw">const</span> raft = <span class="kw">new</span> <span class="lang">QuiltRaft</span>(sub, { peers: [<span class="str">'n1'</span>, <span class="str">'n2'</span>, <span class="str">'n3'</span>] });
+raft.onCommit((event) =&gt; sub.apply(event));</code></pre>
+    </article>
+
+    <article class="boundary" data-keywords="multi region replication geodistributed" data-status="roadmap">
+      <h3>13. Multi-region replication</h3>
+      <p><strong>Limit:</strong> a substrate in us-east and a substrate in eu-west don't share state — last-writer-wins is wrong at 100ms RTT.</p>
+      <p><strong>Bridge:</strong> saddle-bridge + a replicator loop (now); <code>quilt-replicator</code> (roadmap) — CRDT + Raft for active-active across regions.</p>
+<pre><code><span class="kw">const</span> rep = <span class="kw">new</span> <span class="lang">QuiltReplicator</span>(sub, {
+  regions: [<span class="str">'us-east'</span>, <span class="str">'eu-west'</span>],
+  mode: <span class="str">'crdt'</span>,
+});</code></pre>
+    </article>
+
+    <article class="boundary" data-keywords="wasm sandbox untrusted code" data-status="existing">
+      <h3>14. WASM sandboxing untrusted code</h3>
+      <p><strong>Limit:</strong> a cell can run arbitrary JS or C, but the substrate can't constrain what it accesses.</p>
+      <p><strong>Bridge:</strong> <a href="https://github.com/SuperInstance/quilt-vm-wasm">quilt-vm-wasm</a> (now) — each cell runs in a WASM module with a host-defined interface; <code>quilt-wasi-cell</code> (roadmap) — full WASI capability-based sandboxing.</p>
+<pre><code><span class="kw">const</span> cell = <span class="kw">await</span> <span class="lang">WasmCell</span>.load(<span class="str">'./plugin.wasm'</span>, {
+  allowedCells: [<span class="str">'input'</span>], <span class="com">// capability list</span>
+});
+sub.bind(<span class="str">'plugin'</span>, cell);</code></pre>
+    </article>
+
+    <article class="boundary" data-keywords="esp32 sensor hardware iot dma" data-status="existing">
+      <h3>15. Hardware sensors at high frequency</h3>
+      <p><strong>Limit:</strong> the substrate's TICK is software — sensors at 1MHz generate events faster than the journal can absorb.</p>
+      <p><strong>Bridge:</strong> <a href="https://github.com/SuperInstance/quilt-esp32">quilt-esp32</a> + DMA ring buffer (now); <code>quilt-sensor-bus</code> (roadmap) — direct-to-journal DMA with sample-on-difference.</p>
+<pre><code><span class="com">// On the ESP32, DMA fills a ring buffer; the substrate samples on difference</span>
+<span class="kw">void</span> app_main() {
+  setup_dma(<span class="str">'adc1'</span>, SAMPLE_RATE_1MHZ);
+  sub.on(<span class="str">'adc1'</span>, on_adc_change);  <span class="com">// only fires on delta</span>
+}</code></pre>
+    </article>
+  </section>
+
+  <section>
+    <h2><span class="num">03</span><span>The principle</span><span class="rule"></span></h2>
+    <p class="lead">
+      The boundaries are <em>found</em>, not designed. Like
+      carving hauls on a boat hull to find the waterline. You
+      push the boat into rougher water and watch where it
+      starts to take on. That place is a boundary. The chart
+      is the cowboy's last ride.
+    </p>
+    <p class="lead">
+      The substrate is the boat. The boat has a waterline. The
+      waterline is the boundary. The boundary is the chart.
+      The chart is the cowboy.
+    </p>
+  </section>
+</main>
+
+<footer class="quilt">
+  <div class="row">
+    <div class="col">
+      <h4>The substrate</h4>
+      <ul>
+        <li><a href="https://github.com/SuperInstance/quilt-substrate-meta">quilt-substrate-meta</a> · C99 reference</li>
+        <li><a href="https://github.com/SuperInstance/AI-Writings/blob/master/seed-canon/papers/paper-181.md">Paper 181</a> · the framing</li>
+      </ul>
+    </div>
+  </div>
+</footer>
+
+<style>
+.boundary { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r); padding: 1.2rem 1.4rem; margin: 1rem 0; }
+.boundary h3 { margin: 0 0 0.5rem; font-size: 1.1rem; }
+.boundary p { margin: 0.4rem 0; color: var(--ink-2); font-size: 0.92rem; }
+.boundary pre { margin: 0.6rem 0 0; }
+.boundary.hidden { display: none; }
+</style>
+
+<script>
+(function() {
+  const filter = document.getElementById('filter');
+  const status = document.getElementById('status');
+  const articles = document.querySelectorAll('.boundary');
+
+  function apply() {
+    const q = filter.value.toLowerCase();
+    const s = status.value;
+    articles.forEach(a => {
+      const kws = (a.dataset.keywords || '').toLowerCase();
+      const stat = a.dataset.status;
+      const matchQ = !q || kws.includes(q);
+      const matchS = (s === 'all') || (stat === s);
+      a.classList.toggle('hidden', !(matchQ && matchS));
+    });
+  }
+  filter.oninput = apply;
+  status.onchange = apply;
+})();
+</script>
+
+</body>
+</html>

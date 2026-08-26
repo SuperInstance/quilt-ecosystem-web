@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Quilt · The 5-Opolyformalism</title>
+<link rel="stylesheet" href="/assets/css/quilt.css" />
+</head>
+<body>
+
+<header class="quilt">
+  <div class="row">
+    <a class="brand" href="/">Quilt<span class="dot">·</span></a>
+    <nav>
+      <a href="/academy/">Academy</a>
+      <a href="/repl/">REPL</a>
+      <a href="/playground/">Playground</a>
+      <a href="/apps/">Apps</a>
+      <a href="/boundaries/">Boundaries</a>
+      <a href="/vms/">VMs</a>
+      <a href="/canon/">Canon</a>
+      <a href="/self-host/">Self-host</a>
+    </nav>
+    <div class="right">v0.1 · cloudflare edges</div>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <h1>Five words. <span style="color:var(--amber)">One substrate.</span></h1>
+    <p class="lede">
+      BIND, LINK, EFFECT, VIEW, TICK — five messages every cell
+      can receive. The algebra is small. The surface is large. The
+      map is the collection. The cowboy rides.
+    </p>
+    <div class="meta">24 repos · 178 papers · 92 fables · 53 stories · 6 languages</div>
+  </section>
+
+  <section>
+    <h2><span class="num">01</span><span>Start here</span><span class="rule"></span></h2>
+    <p class="lead">
+      The Quilt has twenty-four doors. Each one shows a different
+      angle of the same idea. Pick the door that matches why you
+      came. The map of the whole collection is in
+      <a href="https://github.com/SuperInstance/AI-Writings/blob/master/seed-canon/COLLECTION.md">COLLECTION.md</a>.
+    </p>
+    <div class="cards">
+      <a class="card" href="/academy/">
+        <h3>Quilt Academy</h3>
+        <p>7 interactive lessons. Learn the 5 opcodes by running them in the browser. Save your work, take it with you.</p>
+        <span class="tag">education · interactive</span>
+      </a>
+      <a class="card" href="/repl/">
+        <h3>Browser REPL</h3>
+        <p>Type polyformalism code, see the journal in real time, scrub through time. Export to saddle-bridge JSONL.</p>
+        <span class="tag">play · experiment</span>
+      </a>
+      <a class="card" href="/playground/">
+        <h3>Playground</h3>
+        <p>Visual cell editor. Drag boxes, draw links, see the substrate form. Save your graph, share a link.</p>
+        <span class="tag">visual · creative</span>
+      </a>
+      <a class="card" href="/apps/">
+        <h3>The 5 apps</h3>
+        <p>kv, bus, config, sixth, plugins — five working tools built on the substrate. Use them, fork them, learn from them.</p>
+        <span class="tag">examples · production</span>
+      </a>
+      <a class="card" href="/boundaries/">
+        <h3>Laminar Boundaries</h3>
+        <p>15 boundaries where the substrate alone isn't enough. Each has a bridge — a Quilt repo or a roadmap item.</p>
+        <span class="tag">architecture · navigation</span>
+      </a>
+      <a class="card" href="/vms/">
+        <h3>The 5 VMs</h3>
+        <p>Same substrate in 5 languages: C, Rust, TypeScript, Haskell, WASM. Run them all in your browser.</p>
+        <span class="tag">code · comparison</span>
+      </a>
+      <a class="card" href="/canon/">
+        <h3>The Canon</h3>
+        <p>178 papers, 92 fables, 53 stories. Search by meaning, not just keywords.</p>
+        <span class="tag">search · reading</span>
+      </a>
+      <a class="card" href="/self-host/">
+        <h3>Self-host</h3>
+        <p>Run your own Quilt. 3 paths: local Python, Cloudflare Worker, full stack. Pick what you can carry.</p>
+        <span class="tag">fork · own</span>
+      </a>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span><span>The 5 opcodes, at a glance</span><span class="rule"></span></h2>
+    <table>
+      <thead>
+        <tr><th>Opcode</th><th>What it does</th><th>Algebraic law</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code class="op">BIND</code></td><td>Give a name to a value</td><td>Idempotent (re-binding same name + value is a no-op)</td></tr>
+        <tr><td><code class="op">LINK</code></td><td>Draw a typed relationship</td><td>Transitive (a→b and b→c implies a→c)</td></tr>
+        <tr><td><code class="op">EFFECT</code></td><td>Run a function with side effects</td><td>Associative (the order of composition doesn't matter)</td></tr>
+        <tr><td><code class="op">VIEW</code></td><td>Read a value, no side effects</td><td>Pure (VIEW does not modify the journal)</td></tr>
+        <tr><td><code class="op">TICK</code></td><td>Advance time</td><td>Monotonic (t never decreases; dt ≤ 1 per cell per cycle)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2><span class="num">03</span><span>The principle</span><span class="rule"></span></h2>
+    <p class="lead">
+      The Quilt is one idea expressed in 24 doors. Each door is
+      a local metaphor for a different audience — mathematicians,
+      hardware hackers, web developers, story readers. The
+      substrate is the same because the math is the same. The
+      cowboy rides the boat to the dock. The dock is where
+      people come aboard.
+    </p>
+    <p class="lead">
+      You can save anything you make here. Take it to a local
+      instance. Or keep it in the cloud and come back. The state
+      is yours.
+    </p>
+  </section>
+</main>
+
+<footer class="quilt">
+  <div class="row">
+    <div class="col">
+      <h4>The substrate</h4>
+      <ul>
+        <li><a href="https://github.com/SuperInstance/quilt-substrate-meta">quilt-substrate-meta</a> · C99 reference</li>
+        <li><a href="https://github.com/SuperInstance/quilt-vm-typescript">quilt-vm-typescript</a> · browser</li>
+        <li><a href="https://github.com/SuperInstance/quilt-foundation">quilt-foundation</a> · 5 opcodes, math</li>
+      </ul>
+    </div>
+    <div class="col">
+      <h4>The canon</h4>
+      <ul>
+        <li><a href="https://github.com/SuperInstance/AI-Writings">AI-Writings</a> · 178 papers</li>
+        <li><a href="https://github.com/SuperInstance/AI-Writings/blob/master/seed-canon/COLLECTION.md">COLLECTION.md</a> · the map</li>
+        <li><a href="https://github.com/SuperInstance/AI-Writings/blob/master/prose/the_great_distribution.md">The Great Distribution</a> · the framing</li>
+      </ul>
+    </div>
+    <div class="col">
+      <h4>Get involved</h4>
+      <ul>
+        <li><a href="/self-host/">Self-host</a> · run your own</li>
+        <li><a href="https://github.com/SuperInstance">github.com/SuperInstance</a> · 24 repos</li>
+        <li><a href="/canon/">Search the canon</a> · by meaning</li>
+      </ul>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

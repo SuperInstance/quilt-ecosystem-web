@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>The 5 Apps · Quilt</title>
+<link rel="stylesheet" href="/assets/css/quilt.css" />
+</head>
+<body>
+
+<header class="quilt">
+  <div class="row">
+    <a class="brand" href="/">Quilt<span class="dot">·</span></a>
+    <nav>
+      <a href="/academy/">Academy</a>
+      <a href="/repl/">REPL</a>
+      <a href="/playground/">Playground</a>
+      <a href="/apps/" class="active">Apps</a>
+      <a href="/boundaries/">Boundaries</a>
+      <a href="/vms/">VMs</a>
+      <a href="/canon/">Canon</a>
+      <a href="/self-host/">Self-host</a>
+    </nav>
+    <div class="right">5 apps · all in browser</div>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <h1>The 5 apps</h1>
+    <p class="lede">
+      Five working tools built on the substrate. Each one uses
+      the 5 opcodes in a different way. Each one runs in the
+      browser, saves to localStorage, and exports to
+      saddle-bridge JSONL. Fork them, learn from them, take
+      them offline.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="num">01</span><span>The apps</span><span class="rule"></span></h2>
+    <div class="cards">
+      <a class="card" href="/apps/kv/">
+        <h3>1. kv — A key-value store</h3>
+        <p>The smallest useful app. BIND is the only opcode. 30 lines of code. Try it first.</p>
+        <span class="tag">30 lines</span>
+      </a>
+      <a class="card" href="/apps/bus/">
+        <h3>2. bus — A pub/sub bus</h3>
+        <p>LINK subscribes a cell to a topic. BIND publishes a message. Listeners fire on every subscriber.</p>
+        <span class="tag">50 lines</span>
+      </a>
+      <a class="card" href="/apps/config/">
+        <h3>3. config — A versioned config</h3>
+        <p>Every change is a journal event. Roll back to any past state. Time-travel is the substrate's job.</p>
+        <span class="tag">70 lines</span>
+      </a>
+      <a class="card" href="/apps/sixth/">
+        <h3>4. sixth — A 6th opcode, derived</h3>
+        <p>Use the substrate to define a new opcode. The prover accepts or rejects. The boundary is found, not designed.</p>
+        <span class="tag">50 lines</span>
+      </a>
+      <a class="card" href="/apps/plugins/">
+        <h3>5. plugins — A self-evolving registry</h3>
+        <p>Add a plugin at runtime. The substrate evolves. The new opcodes are bound by the same 5 laws.</p>
+        <span class="tag">50 lines</span>
+      </a>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span><span>How they relate to the C99 reference</span><span class="rule"></span></h2>
+    <p class="lead">
+      Each web app is the same algorithm as the corresponding
+      C99 app in <a href="https://github.com/SuperInstance/quilt-substrate-meta/tree/main/apps">quilt-substrate-meta/apps</a>.
+      The web version uses the JavaScript substrate; the C99
+      version uses the C substrate. The same journal format
+      works for both. You can run the web app, export the
+      JSONL, and replay it in the C99 version. Or vice versa.
+    </p>
+    <p class="lead">
+      The substrate is a contract. The implementations are
+      interchangeable.
+    </p>
+  </section>
+</main>
+
+<footer class="quilt">
+  <div class="row">
+    <div class="col">
+      <h4>The substrate</h4>
+      <ul>
+        <li><a href="https://github.com/SuperInstance/quilt-substrate-meta">quilt-substrate-meta</a> · C99 reference</li>
+        <li><a href="https://github.com/SuperInstance/quilt-vm-typescript">quilt-vm-typescript</a> · browser</li>
+      </ul>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

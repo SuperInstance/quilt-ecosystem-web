@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Canon · Search 200+ pieces</title>
+<link rel="stylesheet" href="/assets/css/quilt.css" />
+</head>
+<body>
+
+<header class="quilt">
+  <div class="row">
+    <a class="brand" href="/">Quilt<span class="dot">·</span></a>
+    <nav>
+      <a href="/academy/">Academy</a>
+      <a href="/repl/">REPL</a>
+      <a href="/playground/">Playground</a>
+      <a href="/apps/">Apps</a>
+      <a href="/boundaries/">Boundaries</a>
+      <a href="/vms/">VMs</a>
+      <a href="/canon/" class="active">Canon</a>
+      <a href="/self-host/">Self-host</a>
+    </nav>
+    <div class="right">Vectorize · bge-base</div>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <h1>The <span style="color:var(--purple)">Canon</span></h1>
+    <p class="lede">
+      178 papers, 92 fables, 53 stories. Search by meaning, not
+      just keywords. The index is the bge-base embedding model
+      running on Cloudflare Workers AI. The results are ranked
+      by semantic similarity.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="num">01</span><span>Search</span><span class="rule"></span></h2>
+    <div class="app-form">
+      <input type="text" id="q" placeholder="search the canon…" style="flex: 1; padding: 0.6rem 0.9rem; font-size: 1rem;" />
+      <button id="search" style="padding: 0.6rem 1.2rem;">⚡ Search</button>
+    </div>
+    <p class="lead" style="font-size: 0.85rem; margin-top: 0.4rem;">
+      Try: "cowboy rides the boat", "what is the substrate", "5 opcodes", "laminar boundaries", "self-evolving"
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span><span>Results</span><span class="rule"></span></h2>
+    <div id="results">
+      <div style="color: var(--ink-3); padding: 1rem 0;">Type a query and press Enter.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">03</span><span>How it works</span><span class="rule"></span></h2>
+    <p class="lead">
+      The canon lives in <a href="https://github.com/SuperInstance/AI-Writings/tree/master/seed-canon">AI-Writings/seed-canon</a>
+      on GitHub. The <code>index_canon.py</code> script chunks
+      each file into 1000-char pieces, embeds each chunk via
+      <code>@cf/baai/bge-base-en-v1.5</code> on Workers AI (free
+      tier), and pushes the vectors to <code>quilt-canon</code>
+      on Cloudflare Vectorize. The search worker queries the
+      index in real time.
+    </p>
+    <p class="lead">
+      Total time: ~5 minutes for 200+ files, ~1000 chunks.
+      Cost: free (Workers AI free tier = 10k embeddings/day).
+    </p>
+  </section>
+</main>
+
+<style>
+.result { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r); padding: 1rem 1.2rem; margin: 0.6rem 0; }
+.result h3 { margin: 0 0 0.3rem; font-size: 1rem; }
+.result h3 a { color: var(--ink); }
+.result h3 a:hover { color: var(--amber); }
+.result .meta { color: var(--ink-3); font-size: 0.78rem; font-family: var(--mono); margin-bottom: 0.5rem; }
+.result .meta .pill { margin-right: 0.4rem; }
+.result .snippet { color: var(--ink-2); font-size: 0.88rem; line-height: 1.5; }
+.result .score { color: var(--ink-3); font-size: 0.78rem; font-family: var(--mono); }
+</style>
+
+<script>
+(function() {
+  const q = document.getElementById('q');
+  const results = document.getElementById('results');
+
+  function escape(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  async function doSearch() {
+    const query = q.value.trim();
+    if (!query) return;
+    results.innerHTML = '<div style="color: var(--ink-3); padding: 1rem 0;">Searching…</div>';
+
+    try {
+      const res = await fetch('/api/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ q: query, limit: 20 }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        results.innerHTML = `<div style="color: var(--red); padding: 1rem 0;">${escape(err.error || 'search failed')}</div>`;
+        return;
+      }
+      const data = await res.json();
+      if (!data.results || data.results.length === 0) {
+        results.innerHTML = '<div style="color: var(--ink-3); padding: 1rem 0;">No results. Try a different query.</div>';
+        return;
+      }
+      results.innerHTML = data.results.map(r => {
+        const url = `https://github.com/SuperInstance/AI-Writings/blob/master/seed-canon/${escape(r.path)}`;
+        return `
+          <div class="result">
+            <h3><a href="${url}" target="_blank">${escape(r.title)}</a></h3>
+            <div class="meta">
+              <span class="pill">${escape(r.type)}</span>
+              <span class="score">score: ${r.score.toFixed(3)}</span>
+              <span>· <a href="${url}" target="_blank" style="color: var(--ink-3);">${escape(r.path)}</a></span>
+            </div>
+            <div class="snippet">${escape(r.snippet || '')}…</div>
+          </div>`;
+      }).join('');
+    } catch (e) {
+      results.innerHTML = `<div style="color: var(--red); padding: 1rem 0;">Error: ${escape(e.message)}. The search worker may not be configured.</div>`;
+    }
+  }
+
+  document.getElementById('search').onclick = doSearch;
+  q.onkeydown = (e) => { if (e.key === 'Enter') doSearch(); };
+})();
+</script>
+
+</body>
+</html>
