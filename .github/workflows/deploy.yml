@@ -1,0 +1,48 @@
+name: Deploy to Cloudflare Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: quilt
+          directory: .
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          wranglerVersion: "3"
+
+  index-canon:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'  # manual trigger
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install requests
+        run: pip install requests
+
+      - name: Clone canon
+        run: |
+          git clone --depth 1 https://github.com/SuperInstance/AI-Writings.git /tmp/canon
+          mkdir -p /workspace/ai-writings-new/seed-canon
+          cp -r /tmp/canon/seed-canon/* /workspace/ai-writings-new/seed-canon/
+
+      - name: Index canon to Vectorize
+        env:
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          VECTORIZE_ID: ${{ secrets.VECTORIZE_ID }}
+        run: python3 scripts/index_canon.py
