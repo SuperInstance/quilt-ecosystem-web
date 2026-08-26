@@ -164,6 +164,58 @@
       return lines.join('\n') + '\n';
     }
 
+    // Compress the journal to a single line (no whitespace).
+    // Useful for storage and transmission. Round-trips with fromJSONL.
+    compress() {
+      const lines = [];
+      for (const ev of this.events) {
+        lines.push(JSON.stringify(ev));
+      }
+      return lines.join('');
+    }
+
+    // Fork: deep clone this substrate with a new id. Useful for branching.
+    fork(newId) {
+      const fresh = new Substrate();
+      fresh.fromJSONL(this.toJSONL());
+      if (newId) fresh._id = newId;
+      return fresh;
+    }
+
+    // Merge another substrate's events into this one (chronological).
+    merge(other) {
+      const merged = [...this.events, ...other.events]
+        .sort((a, b) => (a.t || 0) - (b.t || 0));
+      this.fromJSONL(merged.map(e => JSON.stringify(e)).join('\n') + '\n');
+      return this;
+    }
+
+    // Diff: return the events in other that are not in this one.
+    diff(other) {
+      const myKeys = new Set(this.events.map(e => JSON.stringify(e)));
+      return other.events.filter(e => !myKeys.has(JSON.stringify(e)));
+    }
+
+    // Compact: deduplicate redundant BINDs. A BIND is redundant if the
+    // same name has the same value in a later BIND without an intervening
+    // read or other event.
+    compact() {
+      const seen = new Map();
+      const out = [];
+      for (const ev of this.events) {
+        if (ev.op === 'BIND') {
+          const prev = seen.get(ev.id);
+          if (prev && JSON.stringify(prev) === JSON.stringify(ev.value)) {
+            continue;  // redundant
+          }
+          seen.set(ev.id, ev.value);
+        }
+        out.push(ev);
+      }
+      this.events = out;
+      return this;
+    }
+
     // Load from JSONL
     fromJSONL(text) {
       this.cells.clear();

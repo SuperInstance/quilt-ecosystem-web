@@ -10,4 +10,4 @@ index_name = "quilt-canon"
 binding = "AI"
 
 [vars]
-ALLOWED_ORIGINS = "https://quilt.superinstance.dev,https://superinstance.dev,http://localhost:8080"
+ALLOWED_ORIGINS = "https://quilt-ecosystem-web.pages.dev,https://quilt.superinstance.dev,https://superinstance.dev,http://localhost:8080,http://127.0.0.1:8080"

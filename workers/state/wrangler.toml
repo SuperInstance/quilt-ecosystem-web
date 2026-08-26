@@ -4,7 +4,7 @@ compatibility_date = "2024-01-01"
 
 [[kv_namespaces]]
 binding = "STATE"
-id = "REPLACE_WITH_KV_ID"
+id = "fdc2599c359b4346bdd429ed85c77ce5"
 
 [vars]
-ALLOWED_ORIGINS = "https://quilt.superinstance.dev,https://superinstance.dev,http://localhost:8080"
+ALLOWED_ORIGINS = "https://quilt-ecosystem-web.pages.dev,https://quilt.superinstance.dev,https://superinstance.dev,http://localhost:8080,http://127.0.0.1:8080"
