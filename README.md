@@ -113,6 +113,37 @@ Each is also implemented in C99 in
 The web version uses the JS substrate; the C99 version uses
 the C substrate. The same journal format works for both.
 
+## The JavaScript substrate
+
+`assets/js/substrate.js` (~10.6KB, no dependencies) — the same
+5 opcodes, the same 5 laws, the same journal format as the C99
+substrate. Runs in any browser or in Node.
+
+**The 15 methods:**
+
+| Method | What it does |
+|---|---|
+| `bind(name, value)` | Give a name to a value. Idempotent. |
+| `link(from, to, rel)` | Draw a typed relationship. Transitive. |
+| `effect(name, fn)` | Run a function with side effects. |
+| `view(name)` | Read a value. Pure — no journal change. |
+| `tick(dt)` | Advance time. |
+| `on(name, fn)` | Listen for changes to a cell. |
+| `replay()` | Reconstruct state from journal. |
+| `toJSONL()` | Serialize as newline-delimited JSON. |
+| `fromJSONL(text)` | Load from JSONL. |
+| `compress()` | Single-line JSONL (storage-friendly). |
+| `fork(newId)` | Deep clone (branching). |
+| `merge(other)` | Combine journals (collaboration). |
+| `diff(other)` | Set difference (sync). |
+| `compact()` | Dedupe redundant BINDs. |
+| `prove()` | Verify the 5 laws. |
+
+All 18 tests pass (`/workspace/_scouts/comprehensive_test.mjs`).
+The 5 methods (compress, fork, merge, diff, compact) were added
+in one self-improvement iteration via `improve.py`. The
+substrate self-extends; the cowboy's loop holds.
+
 ## The principle
 
 The 5 opcodes appear in the web pages too:

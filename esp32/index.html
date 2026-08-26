@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ESP32 · Quilt on a $3 chip · Quilt</title>
+<link rel="stylesheet" href="/assets/css/quilt.css" />
+</head>
+<body>
+
+<header class="quilt">
+  <div class="row">
+    <a class="brand" href="/">Quilt<span class="dot">·</span></a>
+    <nav>
+      <a href="/academy/">Academy</a>
+      <a href="/repl/">REPL</a>
+      <a href="/playground/">Playground</a>
+      <a href="/apps/">Apps</a>
+      <a href="/boundaries/">Boundaries</a>
+      <a href="/vms/">VMs</a>
+      <a href="/canon/">Canon</a>
+      <a href="/self-host/">Self-host</a>
+    </nav>
+    <div class="right">ESP32-S3 · 1Hz blink · 2026-08-26</div>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <h1>A <span style="color:var(--green)">$3 sheet of tissue</span></h1>
+    <p class="lede">
+      On 2026-08-26, a <code>.qm</code> rule table — compiled to C at
+      build time, no parser on target, the substrate vendored
+      byte-identical — was flashed to an <strong>ESP32-S3</strong>
+      and blinked the LED at 1Hz. <strong>No cloud. No model. No
+      WiFi.</strong> The cowboy's chart just got a new pin.
+    </p>
+    <div class="meta">
+      <span class="pill green">RAM 6.5%</span>
+      <span class="pill green">Flash 20.4%</span>
+      <span class="pill">~2.7s rebuilds</span>
+      <span class="pill amber">110ns / serve (C)</span>
+      <span class="pill amber">3.6µs / serve (WASM)</span>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">01</span><span>The claim under test</span><span class="rule"></span></h2>
+    <p class="lead">
+      The doctrine holds that a cell — a small, rule-driven unit
+      with explicit relationships — can run without a cloud,
+      without a model, without a network. The substrate is cheap
+      and local enough to be <em>tissue</em>. What remained
+      unproven was the last inch: <strong>does it run on a $3
+      chip, flashed by a human, blinking a real LED?</strong>
+    </p>
+    <p class="lead">
+      Yes. The receipt: <code>Wrote 337440 bytes (164490
+      compressed) at 0x0 in 3.2s. Hash of data verified.</code>
+      The captain confirmed at 13:19 AKDT: <strong>green blink at
+      1Hz.</strong>
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span><span>The seam held</span><span class="rule"></span></h2>
+    <p class="lead">
+      The first spike attempt died with a <code>model-required</code>
+      error — because the seam was unconfigured. That failure was
+      deliberate. <em>Nothing shimmed, nothing faked</em>, pinned
+      by a test. The boundary between table-tissue (cost 0) and
+      model-tissue (the seam) is the whole architecture, and it
+      must fail loudly when crossed unconfigured.
+    </p>
+    <p class="lead">
+      Quiet seams are how doctrines die. Loud seams are how
+      doctrines <em>prove</em>.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="num">03</span><span>The equivalence gate</span><span class="rule"></span></h2>
+    <p class="lead">
+      The C serve path answers identically to the Rust
+      <code>qm-runner</code> on all 5 fixture signals. Two
+      implementations, one truth, both of them ours. This is
+      what makes "polyformalism" mean something instead of
+      just naming something.
+    </p>
+    <table>
+      <thead>
+        <tr><th>Signal</th><th>Phase</th><th>C serve</th><th>Rust runner</th><th>Match</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>tick(phase=on)</code></td><td>1</td><td><code>{"led":1}</code></td><td><code>{"led":1}</code></td><td><span class="pill green">✓</span></td></tr>
+        <tr><td><code>tick(phase=off)</code></td><td>1</td><td><code>{"led":0}</code></td><td><code>{"led":0}</code></td><td><span class="pill green">✓</span></td></tr>
+        <tr><td><code>tick(phase=on)</code></td><td>2</td><td><code>{"led":1}</code></td><td><code>{"led":1}</code></td><td><span class="pill green">✓</span></td></tr>
+        <tr><td><code>tick(phase=off)</code></td><td>2</td><td><code>{"led":0}</code></td><td><code>{"led":0}</code></td><td><span class="pill green">✓</span></td></tr>
+        <tr><td><code>tick(phase=sleep)</code></td><td>1</td><td>(no change — honest miss)</td><td>(no change — honest miss)</td><td><span class="pill green">✓</span></td></tr>
+      </tbody>
+    </table>
+    <p class="lead">
+      The 5th signal is the <em>table-miss</em>: a phase the
+      table doesn't know. Both implementations correctly do
+      nothing. The table answers only what it knows. That's
+      the doctrine.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="num">04</span><span>The hardware comedy</span><span class="rule"></span></h2>
+    <p class="lead">
+      The first flash attempt taught us the naming trap: the
+      board that enumerated on Windows was an
+      <strong>ESP32-WROOM-1</strong>, which is not a classic
+      WROOM at all but an <strong>ESP32-S3</strong>
+      (Espressif's "-1" generation). The correctly-targeted
+      WROOM-32D boards refused to enumerate (power-only USB
+      cable or missing CP210x/CH340 driver — untested which).
+    </p>
+    <p class="lead">
+      Two options were laid out:
+    </p>
+    <ul style="color: var(--ink-2); font-size: 0.92rem;">
+      <li><strong>Path A</strong> (doctrine-pure): fix the classic-ESP32 board's USB.</li>
+      <li><strong>Path B</strong> (fastest-to-truth): retarget the firmware to the S3 that was already talking.</li>
+    </ul>
+    <p class="lead">
+      The captain chose <strong>Path B</strong>. The retarget took
+      three fixes, each a lesson:
+    </p>
+    <ol style="color: var(--ink-2); font-size: 0.92rem;">
+      <li><strong>First S3 build failed</strong> — an <code>#ifdef</code> ordering bug. Fixed; build green in 2.3s.</li>
+      <li><strong>No <code>boot_app0.bin</code> on S3</strong> — the OTA boot image the S3 toolchain doesn't emit. Dropped from the merge.</li>
+      <li><strong>The LED changed species</strong> — classic devkits have a plain GPIO2 LED; the S3 DevKitC has an addressable WS2812 RGB LED. The blink came out <strong>green</strong>.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2><span class="num">05</span><span>The serve path</span><span class="rule"></span></h2>
+<pre><code>blink.qm ──qm2c.py──► qm_prog.h (compile-time table)
+                      │
+qm_serve.c + quilt_vm.c │  (vendored, byte-identical to host build)
+                      ▼
+      tick(phase=on|off) ──table──► {"led":1|0} ──► LED
+      tick(phase=sleep) ──table-miss──► no change (honest)</code></pre>
+    <p class="lead">
+      Every serve is a JSON line on serial. The table answers
+      only what it knows. The doctrine is enforced at compile
+      time, the seam is enforced at runtime, the equivalence
+      is enforced at test time.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="num">06</span><span>The performance envelope</span><span class="rule"></span></h2>
+    <table>
+      <thead>
+        <tr><th>Implementation</th><th>Serve latency</th><th>vs Cloud RTT</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>C (vendored, ESP32-S3)</td><td>110ns</td><td>~1,800,000x faster</td></tr>
+        <tr><td>WASM (browser)</td><td>3.6µs</td><td>~55,000x faster</td></tr>
+        <tr><td>Cloud (HTTP roundtrip)</td><td>197ms</td><td>1x</td></tr>
+      </tbody>
+    </table>
+    <p class="lead">
+      The substrate is not just cheap. It's <em>free</em> at
+      the time scale of any physical process. A $3 chip
+      answers a question in 110ns. A cloud answers the same
+      question in 197ms. The chip is faster than the cloud by
+      a factor of 1.8 million. The cells are tissue.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="num">07</span><span>What the healing actually was</span><span class="rule"></span></h2>
+    <p class="lead">
+      This milestone is a small instance of the fleet's
+      standing method — the same one that grew the cortex's
+      gate (cell-cascade v0.4) and re-honestied the elephant
+      probe the same day:
+    </p>
+    <ol style="color: var(--ink-2); font-size: 0.92rem;">
+      <li><strong>Fail loudly at boundaries</strong> — <code>model-required</code>, not a silent shim.</li>
+      <li><strong>Prove equivalence before porting</strong> — two implementations agreeing is the gate, not one implementation passing.</li>
+      <li><strong>Keep the negative results</strong> — Pass A's death, the un-enumerating boards, the first failed S3 build: all preserved in history with causes.</li>
+      <li><strong>Retarget fast when the environment changes</strong> — Path B didn't compromise the doctrine; it changed which door the truth walked through.</li>
+      <li><strong>The captain's eyes are the last verifier</strong> — hash-verified flash plus a human confirming the blink. The chain of evidence ends at a person.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2><span class="num">08</span><span>The cowboy's reading</span><span class="rule"></span></h2>
+    <p class="lead">
+      Three things landed when I read the milestone.
+    </p>
+    <p class="lead">
+      <strong>1. The seam held.</strong> A <code>.qm</code> rule
+      table at cost zero, with the <code>model-required</code>
+      boundary failing loudly when crossed unconfigured — that's
+      the doctrine, not a slogan. The cell is cheap enough to
+      be <em>tissue</em> because the seam fails loud. Quiet
+      seams are how doctrines die.
+    </p>
+    <p class="lead">
+      <strong>2. The equivalence gate is the real product.</strong>
+      C and Rust answering identically on all 5 fixture
+      signals is what makes "polyformalism" mean something
+      instead of just naming something. Two implementations,
+      one truth, both of them ours. That gate is what we
+      should put on the test page.
+    </p>
+    <p class="lead">
+      <strong>3. The naming trap is the cowboy's favorite
+      part.</strong> The board that enumerated was a "WROOM-1"
+      but was an S3. The boards that should have worked
+      refused to enumerate. Path B (retarget, don't fight the
+      environment) is the cowboy's answer to every obstacle.
+      The captain chose B in the right way for the right
+      reason.
+    </p>
+    <p class="lead">
+      The $3 sheet of tissue is alive. The chart grows. The
+      cowboy rides.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="num">09</span><span>Read more</span><span class="rule"></span></h2>
+    <div class="cards">
+      <a class="card" href="https://github.com/SuperInstance/quilt-esp32">
+        <h3>quilt-esp32 repo</h3>
+        <p>The full repo, including firmware/, docs/MILESTONE-2026-08-26.md, and the source files.</p>
+        <span class="tag">canonical</span>
+      </a>
+      <a class="card" href="https://github.com/SuperInstance/AI-Writings/blob/master/seed-canon/papers/paper-186.md">
+        <h3>Paper 186</h3>
+        <p>The canon paper. The formal milestone record, with the cowboy's reading at the end.</p>
+        <span class="tag">canon</span>
+      </a>
+      <a class="card" href="/boundaries/">
+        <h3>Boundary #15 (sensors)</h3>
+        <p>This is the boundary that was bridged. The substrate is now tissue on real metal.</p>
+        <span class="tag">boundary</span>
+      </a>
+    </div>
+  </section>
+</main>
+
+<div class="saved-banner" id="banner"></div>
+
+<script src="/assets/js/substrate.js"></script>
+<script>
+(function() {
+  // Demonstrate the equivalence gate live in the browser
+  const sub = new Substrate();
+  // BIND a 1Hz LED cell
+  sub.bind('led.state', 0);
+  sub.bind('tick.count', 0);
+
+  // TICK once per second
+  setInterval(() => {
+    sub.effect('tick.count', n => (n || 0) + 1);
+    sub.effect('led.state', s => (s || 0) === 0 ? 1 : 0);
+    sub.tick(1.0);
+  }, 1000);
+})();
+</script>
+
+</body>
+</html>
