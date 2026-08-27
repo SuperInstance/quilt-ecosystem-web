@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Semantic Search — The Quilt Canon</title>
+  <link rel="stylesheet" href="/assets/css/quilt.css">
+  <style>
+    .semantic-search {
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 1rem;
+      font-family: 'Georgia', 'Times New Roman', serif;
+    }
+    .search-box {
+      display: flex;
+      gap: 0.5rem;
+      margin: 2rem 0;
+    }
+    .search-box input {
+      flex: 1;
+      padding: 0.75rem;
+      font-size: 1.1rem;
+      font-family: inherit;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .search-box button {
+      padding: 0.75rem 1.5rem;
+      background: #2c3e50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .search-box button:hover {
+      background: #34495e;
+    }
+    .examples {
+      margin: 1rem 0;
+      color: #666;
+    }
+    .examples a {
+      margin: 0 0.5rem;
+      color: #2980b9;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .examples a:hover {
+      text-decoration: underline;
+    }
+    .results {
+      margin: 2rem 0;
+    }
+    .result {
+      padding: 1rem;
+      margin: 0.5rem 0;
+      border-left: 3px solid #3498db;
+      background: #f9f9f9;
+    }
+    .result h3 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.1rem;
+    }
+    .result .meta {
+      color: #888;
+      font-size: 0.85rem;
+      margin: 0.25rem 0;
+    }
+    .result .score {
+      display: inline-block;
+      background: #3498db;
+      color: white;
+      padding: 0.1rem 0.5rem;
+      border-radius: 3px;
+      font-size: 0.8rem;
+      margin-right: 0.5rem;
+    }
+    .result .snippet {
+      margin: 0.5rem 0;
+      color: #444;
+      line-height: 1.5;
+    }
+    .intro {
+      background: #fdf6e3;
+      padding: 1.5rem;
+      border-radius: 4px;
+      margin: 1rem 0;
+    }
+    .intro h2 {
+      margin-top: 0;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><a href="/">The Quilt</a> → Semantic Search</h1>
+    <nav>
+      <a href="/">Home</a> |
+      <a href="/canon/">Canon</a> |
+      <a href="/academy/">Academy</a> |
+      <a href="/repl/">REPL</a> |
+      <a href="/playground/">Playground</a> |
+      <a href="/apps/">Apps</a> |
+      <a href="/boundaries/">Boundaries</a> |
+      <a href="/vms/">VMs</a> |
+      <a href="/self-host/">Self-host</a>
+    </nav>
+  </header>
+
+  <main class="semantic-search">
+    <div class="intro">
+      <h2>The Canon is Searchable</h2>
+      <p>The Quilt canon — 213 papers, 113 fables, 144 stories — is indexed in
+      Cloudflare Vectorize with Workers AI embeddings (bge-base, 768-dim).
+      Ask the canon anything. The search is semantic: it finds pieces by
+      meaning, not just by keyword.</p>
+      <p><strong>Example queries</strong> that the canon knows about:
+      "the cowboy's view of antifragility",
+      "what is a stem cell in the substrate",
+      "the seam between cells",
+      "the exhale",
+      "the 4:30 hour".</p>
+    </div>
+
+    <div class="search-box">
+      <input type="text" id="q" placeholder="Ask the canon..." autofocus>
+      <button onclick="search()">Search</button>
+    </div>
+
+    <div class="examples">
+      Try:
+      <a onclick="document.getElementById('q').value='what is a stem cell in the substrate'; search()">stem cell</a>
+      <a onclick="document.getElementById('q').value='the cowboy and the herd'; search()">cowboy + herd</a>
+      <a onclick="document.getElementById('q').value='antifragility'; search()">antifragility</a>
+      <a onclick="document.getElementById('q').value='the 4:30 hour'; search()">4:30</a>
+      <a onclick="document.getElementById('q').value='the seam'; search()">the seam</a>
+      <a onclick="document.getElementById('q').value='what does the canon say about Triston or NMEA or the sea'; search()">NMEA / sea</a>
+    </div>
+
+    <div id="results" class="results"></div>
+  </main>
+
+  <footer>
+    <p>The Quilt canon is a 5-opcode cellular-architecture framework.
+    Search is hosted on Cloudflare Workers + Vectorize.
+    <a href="https://github.com/SuperInstance/AI-Writings">AI-Writings on GitHub</a>.</p>
+  </footer>
+
+  <script>
+    const SEARCH_URL = 'https://api-search.quilt.superinstance.dev/api/search';
+    const CANON_BASE = 'https://raw.githubusercontent.com/SuperInstance/AI-Writings/master';
+
+    async function search() {
+      const q = document.getElementById('q').value.trim();
+      if (!q) return;
+      const results = document.getElementById('results');
+      results.innerHTML = '<p>Searching the canon...</p>';
+
+      try {
+        const r = await fetch(SEARCH_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ q, limit: 12 }),
+        });
+        const data = await r.json();
+        if (!data.results || data.results.length === 0) {
+          results.innerHTML = '<p>No results. Try a different query.</p>';
+          return;
+        }
+        results.innerHTML = `<h2>${data.results.length} results for "${q}"</h2>`;
+        for (const m of data.results) {
+          const title = m.title || m.id;
+          const type = m.type || 'paper';
+          const path = m.path || '';
+          const snippet = m.text || m.snippet || '';
+          const score = (m.score || 0).toFixed(3);
+          const link = path
+            ? `<a href="${CANON_BASE}/${path}">${title}</a>`
+            : title;
+          results.innerHTML += `
+            <div class="result">
+              <h3>${link}</h3>
+              <div class="meta">
+                <span class="score">${score}</span>
+                ${type}
+                ${path ? ` · ${path}` : ''}
+              </div>
+              <div class="snippet">${snippet.slice(0, 400)}${snippet.length > 400 ? '...' : ''}</div>
+            </div>
+          `;
+        }
+      } catch (e) {
+        results.innerHTML = `<p>Error: ${e.message}</p>`;
+      }
+    }
+
+    document.getElementById('q').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') search();
+    });
+  </script>
+</body>
+</html>
